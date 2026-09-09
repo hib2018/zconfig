@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zconfig.dev/contracts/audit-event.schema.json",
+  "title": "zconfig Audit Event v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "audit_schema",
+    "event_id",
+    "session_id",
+    "sequence",
+    "occurred_at",
+    "actor_type",
+    "action",
+    "change_ids",
+    "source_digest",
+    "previous_event_digest",
+    "event_digest"
+  ],
+  "properties": {
+    "audit_schema": { "const": "zconfig.audit-event/1" },
+    "event_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "session_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "sequence": { "type": "integer", "minimum": 1, "maximum": 5000 },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "actor_type": { "enum": ["human", "agent", "system"] },
+    "action": {
+      "enum": [
+        "review.started",
+        "review.resumed",
+        "review.ended",
+        "proposal.loaded",
+        "comment.created",
+        "comment.updated",
+        "comment.withdrawn",
+        "revision.requested",
+        "revision.accepted",
+        "revision.rejected",
+        "validation.completed",
+        "item.approved",
+        "item.rejected",
+        "item.reset",
+        "secret.revealed",
+        "secret.shared_once",
+        "final.previewed",
+        "final.confirmed",
+        "apply.started",
+        "apply.succeeded",
+        "apply.failed"
+      ]
+    },
+    "change_ids": {
+      "type": "array",
+      "maxItems": 1000,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 128 }
+    },
+    "comment_ids": {
+      "type": "array",
+      "maxItems": 1000,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 128 }
+    },
+    "source_digest": { "$ref": "#/$defs/digest" },
+    "proposal_digest": { "$ref": "#/$defs/digest" },
+    "outcome_code": { "type": "string", "pattern": "^[a-z]+(\\.[a-z0-9_]+)*$", "maxLength": 128 },
+    "previous_event_digest": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/digest" }
+      ]
+    },
+    "event_digest": { "$ref": "#/$defs/digest" }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  }
+}

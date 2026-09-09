@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zconfig.dev/contracts/message.schema.json",
+  "title": "zconfig Process Message v1",
+  "oneOf": [
+    { "$ref": "#/$defs/request" },
+    { "$ref": "#/$defs/success" },
+    { "$ref": "#/$defs/failure" }
+  ],
+  "$defs": {
+    "requestId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol_version", "request_id", "operation", "payload_schema", "payload"],
+      "properties": {
+        "protocol_version": { "const": "1.0" },
+        "request_id": { "$ref": "#/$defs/requestId" },
+        "operation": {
+          "enum": [
+            "protocol_info",
+            "inspect_source",
+            "validate_proposal",
+            "validate_revision",
+            "assemble_final",
+            "apply_final",
+            "revise_proposal"
+          ]
+        },
+        "payload_schema": { "type": "string", "pattern": "^zconfig\\.[a-z0-9-]+/[1-9][0-9]*$" },
+        "payload": { "type": "object" }
+      }
+    },
+    "success": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol_version", "request_id", "ok", "result_schema", "result"],
+      "properties": {
+        "protocol_version": { "const": "1.0" },
+        "request_id": { "$ref": "#/$defs/requestId" },
+        "ok": { "const": true },
+        "result_schema": { "type": "string", "pattern": "^zconfig\\.[a-z0-9-]+/[1-9][0-9]*$" },
+        "result": { "type": "object" }
+      }
+    },
+    "failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol_version", "request_id", "ok", "error"],
+      "properties": {
+        "protocol_version": { "const": "1.0" },
+        "request_id": { "$ref": "#/$defs/requestId" },
+        "ok": { "const": false },
+        "error": { "$ref": "#/$defs/error" }
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "retryable"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^[a-z]+(\\.[a-z0-9_]+)+$" },
+        "message": { "type": "string", "maxLength": 4096 },
+        "retryable": { "type": "boolean" },
+        "details": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["reason"],
+            "properties": {
+              "pointer": { "type": "string" },
+              "reason": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

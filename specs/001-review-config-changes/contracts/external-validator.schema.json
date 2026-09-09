@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zconfig.dev/contracts/external-validator.schema.json",
+  "title": "zconfig External Validator v1",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate_path", "candidate_digest", "source_digest"],
+      "properties": {
+        "candidate_path": { "type": "string", "minLength": 1 },
+        "candidate_digest": { "$ref": "#/$defs/digest" },
+        "source_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate_digest", "status", "code", "message"],
+      "properties": {
+        "candidate_digest": { "$ref": "#/$defs/digest" },
+        "status": { "enum": ["passed", "failed", "unverified"] },
+        "code": { "type": "string" },
+        "message": { "type": "string", "maxLength": 4096 },
+        "details": { "type": "array", "items": { "type": "object" }, "maxItems": 100 }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  }
+}

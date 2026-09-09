@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zconfig.dev/contracts/validation-result.schema.json",
+  "title": "zconfig Validation Result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["subject_digest", "checks"],
+  "properties": {
+    "subject_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "status", "code", "message"],
+        "properties": {
+          "kind": { "type": "string" },
+          "status": { "enum": ["passed", "failed", "unverified"] },
+          "code": { "type": "string" },
+          "message": { "type": "string", "maxLength": 4096 },
+          "pointer": { "type": "string" },
+          "evidence_digest": { "type": "string" }
+        }
+      }
+    }
+  }
+}

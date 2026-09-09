@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zconfig.dev/contracts/protocol-info.schema.json",
+  "title": "zconfig Protocol Info v1",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "maxProperties": 0
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol_versions", "operations", "schemas", "limits"],
+      "properties": {
+        "protocol_versions": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "operations": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "schemas": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["message_bytes"],
+          "properties": { "message_bytes": { "type": "integer", "minimum": 1 } }
+        }
+      }
+    }
+  ]
+}

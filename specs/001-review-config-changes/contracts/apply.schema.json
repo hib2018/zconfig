@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zconfig.dev/contracts/apply.schema.json",
+  "title": "zconfig Apply Final Change v1",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_path", "source_digest", "final_change_digest", "confirmation_nonce"],
+      "properties": {
+        "source_path": { "type": "string", "minLength": 1 },
+        "source_digest": { "$ref": "#/$defs/digest" },
+        "final_change_digest": { "$ref": "#/$defs/digest" },
+        "confirmation_nonce": { "type": "string", "minLength": 32 }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_digest_before", "source_digest_after", "outcome", "recovery"],
+      "properties": {
+        "source_digest_before": { "$ref": "#/$defs/digest" },
+        "source_digest_after": { "$ref": "#/$defs/digest" },
+        "outcome": { "enum": ["applied", "recovered", "unchanged"] },
+        "recovery": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["available"],
+          "properties": {
+            "available": { "type": "boolean" },
+            "path": { "type": "string" }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  }
+}

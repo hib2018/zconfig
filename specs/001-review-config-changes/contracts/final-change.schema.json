@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zconfig.dev/contracts/final-change.schema.json",
+  "title": "zconfig Final Change Set v1",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_path", "source_digest", "proposal", "decisions", "comments", "external_checks"],
+      "properties": {
+        "source_path": { "type": "string", "minLength": 1 },
+        "source_digest": { "$ref": "#/$defs/digest" },
+        "proposal": { "$ref": "proposal.schema.json" },
+        "decisions": { "type": "object", "additionalProperties": { "enum": ["pending", "approved", "rejected"] } },
+        "comments": { "type": "array", "items": { "type": "object" } },
+        "external_checks": { "type": "array", "items": { "$ref": "validation-result.schema.json" } }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["final_change_digest", "source_digest", "approved_change_item_ids", "diff", "checks", "confirmation_nonce"],
+      "properties": {
+        "final_change_digest": { "$ref": "#/$defs/digest" },
+        "source_digest": { "$ref": "#/$defs/digest" },
+        "approved_change_item_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+        "diff": { "type": "string" },
+        "checks": { "$ref": "validation-result.schema.json#/properties/checks" },
+        "confirmation_nonce": { "type": "string", "minLength": 32 }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  }
+}
