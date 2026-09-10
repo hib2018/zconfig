@@ -1,0 +1,1 @@
+{"subject_digest":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","checks":[{"kind":"syntax","status":"passed","code":"source.valid_json","message":"Source is valid JSON."},{"kind":"schema","status":"unverified","code":"schema.not_configured","message":"No schema was supplied.","pointer":"/ui/theme"}]}

@@ -1,0 +1,1 @@
+{"candidate_digest":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","status":"failed","code":"validator.invalid_port","message":"Port is outside the application range.","details":[{"pointer":"/server/port","minimum":1024,"maximum":65535}]}

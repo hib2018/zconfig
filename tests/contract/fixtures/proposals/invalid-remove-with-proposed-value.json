@@ -1,0 +1,1 @@
+{"proposal_id":"proposal-1","revision":1,"source_digest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","created_at":"2026-09-11T09:00:00Z","items":[{"change_id":"change-1","path":"/old","operation":"remove","expected_old":1,"proposed_value":null,"explanation":"Invalid remove shape."}]}

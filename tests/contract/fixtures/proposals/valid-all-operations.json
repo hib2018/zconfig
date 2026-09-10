@@ -1,0 +1,31 @@
+{
+  "proposal_id": "proposal-ui-final-pass",
+  "revision": 1,
+  "source_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "created_at": "2026-09-11T09:00:00Z",
+  "producer": "fixture-agent/1",
+  "items": [
+    {
+      "change_id": "add-density",
+      "path": "/ui/density",
+      "operation": "add",
+      "proposed_value": "compact",
+      "explanation": "Use compact spacing for the final UI pass."
+    },
+    {
+      "change_id": "replace-theme",
+      "path": "/ui/theme",
+      "operation": "replace",
+      "expected_old": "light",
+      "proposed_value": "dark",
+      "explanation": "Match the approved visual direction."
+    },
+    {
+      "change_id": "remove-legacy-banner",
+      "path": "/ui/legacyBanner",
+      "operation": "remove",
+      "expected_old": true,
+      "explanation": "Remove the obsolete banner."
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+{"candidate_digest":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","status":"passed","code":"validator.valid","message":"Candidate is valid.","details":[{"check":"application-config","passed":true}]}

@@ -1,0 +1,1 @@
+{"path":"/auth/password","value":{"visibility":"redacted","secret_ref":"secret-1","value_type":"string","fingerprint":"hmac-sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","value":"super-secret"},"sensitivity":"schema_sensitive"}

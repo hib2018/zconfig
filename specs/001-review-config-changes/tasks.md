@@ -26,12 +26,12 @@ increment after shared setup and foundational work.
 
 **Purpose**: Establish reproducible Zig and Go projects, generated-contract inputs, and CI scaffolding.
 
-- [ ] T001 Create the planned `core/src/`, `core/tests/fixtures/`, `tui/cmd/zconfig/`, `tui/internal/`, `tests/contract/fixtures/`, `tests/integration/`, and `tests/fixtures/` directory structure
-- [ ] T002 Initialize the Zig 0.16.0 build with core executable and test targets in `build.zig` and `build.zig.zon`
-- [ ] T003 [P] Initialize the Go 1.27.1 workspace and `tui` and integration-test modules, pinning compatible Bubble Tea v2.0.8, Bubbles v2, and Lip Gloss v2 dependencies in `go.work`, `tui/go.mod`, `tui/go.sum`, and `tests/go.mod`
-- [ ] T004 [P] Add Zig formatting, test, and release-build jobs for Linux, macOS, and Windows in `.github/workflows/zig-ci.yml`
-- [ ] T005 [P] Add Go formatting, vet, test, and race-test jobs for Linux, macOS, and Windows in `.github/workflows/go-ci.yml`
-- [ ] T006 Add generated binaries, project-local review sessions, recovery files, and temporary test artifacts to `.gitignore`
+- [X] T001 Create the planned `core/src/`, `core/tests/fixtures/`, `tui/cmd/zconfig/`, `tui/internal/`, `tests/contract/fixtures/`, `tests/integration/`, and `tests/fixtures/` directory structure
+- [X] T002 Initialize the Zig 0.16.0 build with core executable and test targets in `build.zig` and `build.zig.zon`
+- [X] T003 [P] Initialize the Go 1.27.1 workspace and `tui` and integration-test modules, pinning compatible Bubble Tea v2.0.8, Bubbles v2, and Lip Gloss v2 dependencies in `go.work`, `tui/go.mod`, `tui/go.sum`, and `tests/go.mod`
+- [X] T004 [P] Add Zig formatting, test, and release-build jobs for Linux, macOS, and Windows in `.github/workflows/zig-ci.yml`
+- [X] T005 [P] Add Go formatting, vet, test, and race-test jobs for Linux, macOS, and Windows in `.github/workflows/go-ci.yml`
+- [X] T006 Add generated binaries, project-local review sessions, recovery files, and temporary test artifacts to `.gitignore`
 
 **Checkpoint**: Both language projects have reproducible local and CI entry points, even though tests
 may still contain only harness checks.
@@ -44,18 +44,18 @@ may still contain only harness checks.
 
 **⚠️ CRITICAL**: No user story implementation begins until this phase is complete.
 
-- [ ] T007 [P] Create valid and invalid envelope and operation-payload golden fixtures from every schema in `specs/001-review-config-changes/contracts/` under `tests/contract/fixtures/messages/`
-- [ ] T008 [P] Create valid and invalid proposal, redacted-value, and external-validator fixtures in `tests/contract/fixtures/proposals/` and `tests/contract/fixtures/validators/`
-- [ ] T009 Write Zig contract tests across all operation schemas for framing, duplicate fields, unknown fields, versions, request IDs, typed redaction, and 16 MiB limits in `core/tests/contract.zig`
-- [ ] T010 Write Go contract tests for the same complete golden acceptance matrix in `tui/internal/protocol/protocol_test.go`
-- [ ] T011 Implement strict request, success, error, capability, operation-payload, typed-redaction, and output-sanitization types in `core/src/protocol.zig`
-- [ ] T012 Implement matching strict protocol types, size-limited decoding, typed-redaction, and output sanitization in `tui/internal/protocol/protocol.go`
-- [ ] T013 Implement `protocol_info` capability negotiation and core command dispatch in `core/src/main.zig`
-- [ ] T014 Implement UI-independent source, proposal, change-item, sensitivity, typed-redaction, check-result, comment, decision, audit-event, and session types in `tui/internal/review/model.go`
-- [ ] T015 Implement process execution without a shell, separate bounded streams, deadlines, cancellation, and exit diagnostics in `tui/internal/runner/process.go`
-- [ ] T016 [P] Write process harness tests for timeout, cancellation, extra stdout, oversized streams, wrong request IDs, non-zero exit, and secret removal from diagnostics in `tui/internal/runner/process_test.go`
-- [ ] T017 Implement user-local agent and optional validator registration parsing, executable-plus-argv validation, working directory, environment allowlist, and timeout defaults in `tui/internal/config/commands.go`
-- [ ] T018 Wire CLI argument parsing, core discovery, agent selection, and protocol handshake without starting the full-screen UI in `tui/cmd/zconfig/main.go`
+- [X] T007 [P] Create valid and invalid envelope and operation-payload golden fixtures from every schema in `specs/001-review-config-changes/contracts/` under `tests/contract/fixtures/messages/`
+- [X] T008 [P] Create valid and invalid proposal, redacted-value, and external-validator fixtures in `tests/contract/fixtures/proposals/` and `tests/contract/fixtures/validators/`
+- [X] T009 Write Zig contract tests across all operation schemas for framing, duplicate fields, unknown fields, versions, request IDs, typed redaction, and 16 MiB limits in `core/tests/contract.zig`
+- [X] T010 Write Go contract tests for the same complete golden acceptance matrix in `tui/internal/protocol/protocol_test.go`
+- [X] T011 Implement strict request, success, error, capability, operation-payload, typed-redaction, and output-sanitization types in `core/src/protocol.zig`
+- [X] T012 Implement matching strict protocol types, size-limited decoding, typed-redaction, and output sanitization in `tui/internal/protocol/protocol.go`
+- [X] T013 Implement `protocol_info` capability negotiation and core command dispatch in `core/src/main.zig`
+- [X] T014 Implement UI-independent source, proposal, change-item, sensitivity, typed-redaction, check-result, comment, decision, audit-event, and session types in `tui/internal/review/model.go`
+- [X] T015 Implement process execution without a shell, separate bounded streams, deadlines, cancellation, and exit diagnostics in `tui/internal/runner/process.go`
+- [X] T016 [P] Write process harness tests for timeout, cancellation, extra stdout, oversized streams, wrong request IDs, non-zero exit, and secret removal from diagnostics in `tui/internal/runner/process_test.go`
+- [X] T017 Implement user-local agent and optional validator registration parsing, executable-plus-argv validation, working directory, environment allowlist, and timeout defaults in `tui/internal/config/commands.go`
+- [X] T018 Wire CLI argument parsing, core discovery, agent selection, and protocol handshake without starting the full-screen UI in `tui/cmd/zconfig/main.go`
 
 **Checkpoint**: Go and Zig agree on all golden protocol documents, subprocesses are bounded, and no
 shell string can cross the execution boundary.
@@ -73,19 +73,19 @@ status with and without an optional schema; exiting must leave the source unchan
 
 ### Tests for User Story 1
 
-- [ ] T019 [P] [US1] Write JSON Pointer tests covering root, escaped keys, arrays, append, invalid indices, duplicate keys, and missing targets in `core/tests/pointer_test.zig`
-- [ ] T020 [P] [US1] Write lexical-index tests for nested values, Unicode escapes, number spellings, whitespace, and exact byte spans in `core/tests/source_index_test.zig`
-- [ ] T021 [P] [US1] Write proposal validation tests for IDs, source digest, operation/value combinations, duplicate targets, and ancestor conflicts in `core/tests/proposal_test.zig`
-- [ ] T022 [P] [US1] Write schema-subset, `x-zconfig-sensitive`, normalized sensitive-name, and unsupported-keyword tests in `core/tests/schema_test.zig` and `core/tests/redaction_test.zig`
-- [ ] T023 [P] [US1] Write reducer and view tests for navigation, resize, narrow terminals, empty/error states, check labels, and default redaction before first render in `tui/internal/ui/review_test.go`
-- [ ] T024 [US1] Implement strict RFC 8259 parsing, duplicate-name rejection, SHA-256 identity, node limits, regular-file checks, and conservative normalized sensitive-name classification in `core/src/document.zig` and `core/src/redact.zig`
-- [ ] T025 [US1] Implement RFC 6901 parsing and source-node resolution in `core/src/pointer.zig`
-- [ ] T026 [US1] Implement the lexical source-span index and core-computed add/replace/remove edit envelopes in `core/src/source_index.zig`
-- [ ] T027 [US1] Implement proposal parsing, uniqueness and overlap rules, expected-old checks, and normalized check results in `core/src/proposal.zig`
-- [ ] T028 [US1] Implement the documented JSON Schema subset, `x-zconfig-sensitive` annotation, and unsupported-keyword reporting in `core/src/schema.zig`
-- [ ] T029 [US1] Add `inspect_source` and `validate_proposal` operations that classify values and emit only typed-redacted structured results in `core/src/main.zig`
-- [ ] T030 [US1] Implement the review reducer, filtering, selection, detail view, source diff view, help, scrolling, resize, and monochrome fallback in `tui/internal/review/reducer.go` and `tui/internal/ui/review.go`
-- [ ] T031 [US1] Connect `zconfig review <proposal> --source <file> [--schema <file>]` to core validation and the read-only TUI in `tui/cmd/zconfig/main.go`
+- [X] T019 [P] [US1] Write JSON Pointer tests covering root, escaped keys, arrays, append, invalid indices, duplicate keys, and missing targets in `core/tests/pointer_test.zig`
+- [X] T020 [P] [US1] Write lexical-index tests for nested values, Unicode escapes, number spellings, whitespace, and exact byte spans in `core/tests/source_index_test.zig`
+- [X] T021 [P] [US1] Write proposal validation tests for IDs, source digest, operation/value combinations, duplicate targets, and ancestor conflicts in `core/tests/proposal_test.zig`
+- [X] T022 [P] [US1] Write schema-subset, `x-zconfig-sensitive`, normalized sensitive-name, and unsupported-keyword tests in `core/tests/schema_test.zig` and `core/tests/redaction_test.zig`
+- [X] T023 [P] [US1] Write reducer and view tests for navigation, resize, narrow terminals, empty/error states, check labels, and default redaction before first render in `tui/internal/ui/review_test.go`
+- [X] T024 [US1] Implement strict RFC 8259 parsing, duplicate-name rejection, SHA-256 identity, node limits, regular-file checks, and conservative normalized sensitive-name classification in `core/src/document.zig` and `core/src/redact.zig`
+- [X] T025 [US1] Implement RFC 6901 parsing and source-node resolution in `core/src/pointer.zig`
+- [X] T026 [US1] Implement the lexical source-span index and core-computed add/replace/remove edit envelopes in `core/src/source_index.zig`
+- [X] T027 [US1] Implement proposal parsing, uniqueness and overlap rules, expected-old checks, and normalized check results in `core/src/proposal.zig`
+- [X] T028 [US1] Implement the documented JSON Schema subset, `x-zconfig-sensitive` annotation, and unsupported-keyword reporting in `core/src/schema.zig`
+- [X] T029 [US1] Add `inspect_source` and `validate_proposal` operations that classify values and emit only typed-redacted structured results in `core/src/main.zig`
+- [X] T030 [US1] Implement the review reducer, filtering, selection, detail view, source diff view, help, scrolling, resize, and monochrome fallback in `tui/internal/review/reducer.go` and `tui/internal/ui/review.go`
+- [X] T031 [US1] Connect `zconfig review <proposal> --source <file> [--schema <file>]` to core validation and the read-only TUI in `tui/cmd/zconfig/main.go`
 
 **Checkpoint**: US1 is a demonstrable MVP. Users can understand and navigate a validated proposal;
 there is still no comment, revision, approval, or write path.
@@ -103,16 +103,16 @@ revision is rejected atomically.
 
 ### Tests for User Story 2
 
-- [ ] T032 [P] [US2] Create fixture-agent modes for success, scope expansion, timeout, malformed JSON, secret echo, and non-zero exit in `tests/fixtures/agent/main.go`
-- [ ] T033 [P] [US2] Write comment lifecycle and revision-state reducer tests in `tui/internal/review/revision_test.go`
-- [ ] T034 [P] [US2] Write core revision contract tests for allowed IDs, immutable fields, stale bases, scope violations, and atomic rejection in `core/tests/revision_test.zig`
-- [ ] T035 [P] [US2] Write end-to-end valid and out-of-scope agent revision tests in `tests/integration/revision_flow_test.go`
-- [ ] T036 [US2] Implement create, edit, withdraw, agent-claimed, and human-confirmed comment transitions in `tui/internal/review/comments.go`
-- [ ] T037 [US2] Implement construction of bounded `revise_proposal` requests containing only authorized comment targets in `tui/internal/protocol/revision.go`
-- [ ] T038 [US2] Implement `validate_revision`, immutable-field comparison, whole-revision rejection, and `revision.scope_expansion_required` handling in `core/src/proposal.zig`
-- [ ] T039 [US2] Implement registered-agent capability handshake, one-shot invocation, cancellation, retry-safe errors, and result delivery in `tui/internal/runner/agent.go`
-- [ ] T040 [US2] Implement comment editor, revision progress, error recovery, old-versus-new proposal comparison, and resolution confirmation views in `tui/internal/ui/revision.go`
-- [ ] T041 [US2] Integrate accepted revision state so only modified items return to pending and unmodified decisions persist in `tui/internal/review/reducer.go`
+- [X] T032 [P] [US2] Create fixture-agent modes for success, scope expansion, timeout, malformed JSON, secret echo, and non-zero exit in `tests/fixtures/agent/main.go`
+- [X] T033 [P] [US2] Write comment lifecycle and revision-state reducer tests in `tui/internal/review/revision_test.go`
+- [X] T034 [P] [US2] Write core revision contract tests for allowed IDs, immutable fields, stale bases, scope violations, and atomic rejection in `core/tests/revision_test.zig`
+- [X] T035 [P] [US2] Write end-to-end valid and out-of-scope agent revision tests in `tests/integration/revision_flow_test.go`
+- [X] T036 [US2] Implement create, edit, withdraw, agent-claimed, and human-confirmed comment transitions in `tui/internal/review/comments.go`
+- [X] T037 [US2] Implement construction of bounded `revise_proposal` requests containing only authorized comment targets in `tui/internal/protocol/revision.go`
+- [X] T038 [US2] Implement `validate_revision`, immutable-field comparison, whole-revision rejection, and `revision.scope_expansion_required` handling in `core/src/proposal.zig`
+- [X] T039 [US2] Implement registered-agent capability handshake, one-shot invocation, cancellation, retry-safe errors, and result delivery in `tui/internal/runner/agent.go`
+- [X] T040 [US2] Implement comment editor, revision progress, error recovery, old-versus-new proposal comparison, and resolution confirmation views in `tui/internal/ui/revision.go`
+- [X] T041 [US2] Integrate accepted revision state so only modified items return to pending and unmodified decisions persist in `tui/internal/review/reducer.go`
 
 **Checkpoint**: US2 can refine a proposal through focused comments without permitting the agent to
 expand scope or write the configuration.

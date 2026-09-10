@@ -1,0 +1,1 @@
+{"path":"/auth/password","value":{"visibility":"redacted","secret_ref":"secret-1","value_type":"string"},"sensitivity":"schema_sensitive"}

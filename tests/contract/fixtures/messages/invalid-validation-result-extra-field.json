@@ -1,0 +1,1 @@
+{"subject_digest":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","checks":[{"kind":"syntax","status":"passed","code":"source.valid_json","message":"Valid.","secret":"must-not-appear"}]}

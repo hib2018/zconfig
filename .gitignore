@@ -1,0 +1,25 @@
+# Zig
+.zig-cache/
+zig-cache/
+zig-out/
+
+# Go
+*.exe
+*.test
+*.out
+vendor/
+
+# zconfig local state and recovery artifacts
+.zconfig/
+*.zconfig-recovery
+*.zconfig-tmp
+
+# Test and editor artifacts
+coverage/
+tmp/
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

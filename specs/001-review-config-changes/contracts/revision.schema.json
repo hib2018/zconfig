@@ -29,6 +29,17 @@
         "proposal": { "$ref": "proposal.schema.json" },
         "resolved_comment_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string" } }
       }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["active_proposal", "candidate_proposal", "allowed_change_item_ids", "resolved_comment_ids"],
+      "properties": {
+        "active_proposal": { "$ref": "proposal.schema.json" },
+        "candidate_proposal": { "$ref": "proposal.schema.json" },
+        "allowed_change_item_ids": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } },
+        "resolved_comment_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string" } }
+      }
     }
   ],
   "$defs": {
