@@ -49,6 +49,7 @@ pub fn build(b: *std.Build) void {
     const schema_module = b.createModule(.{ .root_source_file = b.path("core/src/schema.zig"), .target = target });
     const redaction_module = b.createModule(.{ .root_source_file = b.path("core/src/redact.zig"), .target = target });
     const document_module = b.createModule(.{ .root_source_file = b.path("core/src/document.zig"), .target = target });
+    const apply_module = b.createModule(.{ .root_source_file = b.path("core/src/apply.zig"), .target = target });
     const us1_test_specs = [_]struct { path: []const u8, name: []const u8, module: *std.Build.Module }{
         .{ .path = "core/tests/pointer_test.zig", .name = "pointer", .module = pointer_module },
         .{ .path = "core/tests/source_index_test.zig", .name = "source_index", .module = source_index_module },
@@ -57,6 +58,7 @@ pub fn build(b: *std.Build) void {
         .{ .path = "core/tests/redaction_test.zig", .name = "redact", .module = redaction_module },
         .{ .path = "core/tests/document_test.zig", .name = "document", .module = document_module },
         .{ .path = "core/tests/revision_test.zig", .name = "proposal", .module = proposal_module },
+        .{ .path = "core/tests/preservation.zig", .name = "apply", .module = apply_module },
     };
     const test_step = b.step("test", "Run core tests");
     test_step.dependOn(&run_core_tests.step);

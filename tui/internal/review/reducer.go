@@ -12,16 +12,20 @@ const (
 )
 
 type State struct {
-	Items         []ChangeItem
-	Comments      []Comment
-	Selected      int
-	Offset        int
-	Width         int
-	Height        int
-	Mode          Mode
-	Filter        string
-	EditingFilter bool
-	Error         string
+	Items     []ChangeItem
+	Comments  []Comment
+	Lifecycle Lifecycle
+	// FinalConfirmationDigest is deliberately ephemeral. Session persistence must
+	// never restore it, and every authoritative review change clears it.
+	FinalConfirmationDigest string
+	Selected                int
+	Offset                  int
+	Width                   int
+	Height                  int
+	Mode                    Mode
+	Filter                  string
+	EditingFilter           bool
+	Error                   string
 }
 
 func NewState(items []ChangeItem) State {
@@ -31,7 +35,7 @@ func NewState(items []ChangeItem) State {
 			copyItems[i].Decision = DecisionPending
 		}
 	}
-	return State{Items: copyItems, Width: 80, Height: 24, Mode: ModeList}
+	return State{Items: copyItems, Lifecycle: LifecycleReviewing, Width: 80, Height: 24, Mode: ModeList}
 }
 
 func (s *State) VisibleItems() []ChangeItem {

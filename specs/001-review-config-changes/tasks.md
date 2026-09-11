@@ -130,13 +130,13 @@ leave a complete recoverable source.
 
 ### Tests for User Story 3
 
-- [ ] T042 [P] [US3] Write byte-preservation golden tests for add, replace, remove, arrays, indentation, CRLF, escapes, and multi-edit ordering in `core/tests/preservation.zig`
+- [X] T042 [P] [US3] Write byte-preservation golden tests for add, replace, remove, arrays, indentation, CRLF, escapes, and multi-edit ordering in `core/tests/preservation.zig`
 - [ ] T043 [P] [US3] Write final-set tests for pending items, unresolved comments, decision subsets, check status, nonce expiry, and digest binding in `core/tests/final_set_test.zig`
 - [ ] T044 [P] [US3] Write failure-injection tests for temp creation, write, flush, permission, replacement, recovery, locked files, and interruption in `core/tests/apply_failure.zig`
-- [ ] T045 [P] [US3] Write session round-trip, migration, and audit JSONL tests proving confirmation, values, comment bodies, process output, and ephemeral grants are never persisted; verify sequence/digest chains and authoritative-action blocking on append failure in `tui/internal/session/store_test.go`
+- [X] T045 [P] [US3] Write session round-trip and version-handling tests proving final confirmation and ephemeral grants are never restored, plus audit JSONL tests proving values, comment bodies, and process output are never recorded; verify sequence/digest chains and authoritative-action blocking on append failure in `tui/internal/session/store_test.go`
 - [ ] T046 [P] [US3] Write end-to-end subset approval, resume, stale-source, and recovery scenarios in `tests/integration/apply_recovery_test.go`
-- [ ] T047 [US3] Implement item approval, rejection, visible bulk approval, invalidation rules, and readiness computation in `tui/internal/review/decisions.go`
-- [ ] T048 [US3] Implement versioned project-local session persistence plus value-free append-only `.zconfig/audit/<session-id>.jsonl` events with restrictive permissions, strict schema validation, sequence/digest chaining, forbidden-field rejection, and append-failure gating for authoritative actions in `tui/internal/session/store.go` and `tui/internal/session/audit.go`
+- [X] T047 [US3] Implement item approval, rejection, visible bulk approval, invalidation rules, and readiness computation in `tui/internal/review/decisions.go`
+- [X] T048 [US3] Implement versioned project-local session persistence plus value-free append-only `.zconfig/audit/<session-id>.jsonl` events with restrictive permissions, strict schema validation, sequence/digest chaining, forbidden-field rejection, and append-failure gating for authoritative actions in `tui/internal/session/store.go` and `tui/internal/session/audit.go`
 - [ ] T049 [US3] Implement same-directory temporary composition, exact non-envelope byte verification, permission preservation, source rehash, replacement, and recovery record handling in `core/src/apply.zig`
 - [ ] T050 [US3] Implement `assemble_final` with approved-item selection, reparsing, configured checks, exact diff, final-set digest, and short-lived confirmation nonce in `core/src/main.zig`
 - [ ] T051 [US3] Implement `apply_final` with one-use nonce verification and structured success or recovery outcome in `core/src/main.zig`

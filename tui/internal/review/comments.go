@@ -12,6 +12,7 @@ func (s *State) AddComment(changeID, body string, now time.Time) (Comment, error
 	}
 	comment := Comment{CommentID: fmt.Sprintf("comment-%d", len(s.Comments)+1), ChangeID: changeID, Body: body, Status: CommentOpen, CreatedAt: now, UpdatedAt: now}
 	s.Comments = append(s.Comments, comment)
+	s.invalidateFinalConfirmation()
 	return comment, nil
 }
 
@@ -24,6 +25,7 @@ func (s *State) EditComment(commentID, body string, now time.Time) error {
 		return errors.New("comment not found")
 	}
 	comment.Body, comment.UpdatedAt, comment.Status = body, now, CommentOpen
+	s.invalidateFinalConfirmation()
 	return nil
 }
 
@@ -31,6 +33,7 @@ func (s *State) WithdrawComment(commentID string) error {
 	for i := range s.Comments {
 		if s.Comments[i].CommentID == commentID {
 			s.Comments = append(s.Comments[:i], s.Comments[i+1:]...)
+			s.invalidateFinalConfirmation()
 			return nil
 		}
 	}
@@ -45,6 +48,7 @@ func (s *State) ClaimResolved(commentIDs []string) error {
 		}
 		comment.Status = CommentAgentClaimed
 	}
+	s.invalidateFinalConfirmation()
 	return nil
 }
 
@@ -54,6 +58,7 @@ func (s *State) ConfirmComment(commentID string) error {
 		return errors.New("comment is not agent-claimed")
 	}
 	comment.Status = CommentHumanConfirmed
+	s.invalidateFinalConfirmation()
 	return nil
 }
 
@@ -79,6 +84,7 @@ func (s *State) ApplyAcceptedRevision(items []ChangeItem, modifiedIDs, resolvedC
 		return err
 	}
 	s.Items = append([]ChangeItem(nil), items...)
+	s.invalidateFinalConfirmation()
 	return nil
 }
 

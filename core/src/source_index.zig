@@ -81,10 +81,12 @@ pub const Index = struct {
         const node = self.nodes[index];
         if (node.container == .none) return error.NotContainer;
         var children: usize = 0;
+        var insertion_offset = node.close_offset.?;
         for (self.nodes) |candidate| if (candidate.parent == index) {
             children += 1;
+            insertion_offset = candidate.end;
         };
-        return .{ .offset = node.close_offset.?, .needs_comma = children != 0, .container = node.container };
+        return .{ .offset = insertion_offset, .needs_comma = children != 0, .container = node.container };
     }
 };
 

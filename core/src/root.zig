@@ -7,6 +7,7 @@ pub const proposal = @import("proposal.zig");
 pub const redact = @import("redact.zig");
 pub const schema = @import("schema.zig");
 pub const source_index = @import("source_index.zig");
+pub const apply = @import("apply.zig");
 pub const protocol_version = protocol.protocol_version;
 pub const max_message_bytes = protocol.max_message_bytes;
 
