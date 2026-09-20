@@ -131,17 +131,17 @@ leave a complete recoverable source.
 ### Tests for User Story 3
 
 - [X] T042 [P] [US3] Write byte-preservation golden tests for add, replace, remove, arrays, indentation, CRLF, escapes, and multi-edit ordering in `core/tests/preservation.zig`
-- [ ] T043 [P] [US3] Write final-set tests for pending items, unresolved comments, decision subsets, check status, nonce expiry, and digest binding in `core/tests/final_set_test.zig`
-- [ ] T044 [P] [US3] Write failure-injection tests for temp creation, write, flush, permission, replacement, recovery, locked files, and interruption in `core/tests/apply_failure.zig`
+- [X] T043 [P] [US3] Write final-set tests for pending items, unresolved comments, decision subsets, check status, nonce expiry, and digest binding in `core/tests/final_set_test.zig`
+- [X] T044 [P] [US3] Write failure-injection tests for temp creation, write, flush, permission, replacement, recovery, locked files, and interruption in `core/tests/apply_failure.zig`
 - [X] T045 [P] [US3] Write session round-trip and version-handling tests proving final confirmation and ephemeral grants are never restored, plus audit JSONL tests proving values, comment bodies, and process output are never recorded; verify sequence/digest chains and authoritative-action blocking on append failure in `tui/internal/session/store_test.go`
-- [ ] T046 [P] [US3] Write end-to-end subset approval, resume, stale-source, and recovery scenarios in `tests/integration/apply_recovery_test.go`
+- [X] T046 [P] [US3] Write end-to-end subset approval, resume, stale-source, and recovery scenarios in `tests/integration/apply_recovery_test.go`
 - [X] T047 [US3] Implement item approval, rejection, visible bulk approval, invalidation rules, and readiness computation in `tui/internal/review/decisions.go`
 - [X] T048 [US3] Implement versioned project-local session persistence plus value-free append-only `.zconfig/audit/<session-id>.jsonl` events with restrictive permissions, strict schema validation, sequence/digest chaining, forbidden-field rejection, and append-failure gating for authoritative actions in `tui/internal/session/store.go` and `tui/internal/session/audit.go`
-- [ ] T049 [US3] Implement same-directory temporary composition, exact non-envelope byte verification, permission preservation, source rehash, replacement, and recovery record handling in `core/src/apply.zig`
-- [ ] T050 [US3] Implement `assemble_final` with approved-item selection, reparsing, configured checks, exact diff, final-set digest, and short-lived confirmation nonce in `core/src/main.zig`
-- [ ] T051 [US3] Implement `apply_final` with one-use nonce verification and structured success or recovery outcome in `core/src/main.zig`
-- [ ] T052 [US3] Implement decision controls, affected-item bulk confirmation, readiness blockers, final diff, distinct apply confirmation, and recovery messaging in `tui/internal/ui/approval.go`
-- [ ] T053 [US3] Wire autosave at stable transitions, resume-time source revalidation, confirmation clearing, and interrupted-apply reconciliation in `tui/internal/review/reducer.go`
+- [X] T049 [US3] Implement same-directory temporary composition, exact non-envelope byte verification, permission preservation, source rehash, replacement, and recovery record handling in `core/src/apply.zig`
+- [X] T050 [US3] Implement `assemble_final` with approved-item selection, reparsing, configured checks, exact diff, final-set digest, and short-lived confirmation nonce in `core/src/main.zig`
+- [X] T051 [US3] Implement `apply_final` with one-use nonce verification and structured success or recovery outcome in `core/src/main.zig`
+- [X] T052 [US3] Implement decision controls, affected-item bulk confirmation, readiness blockers, final diff, distinct apply confirmation, and recovery messaging in `tui/internal/ui/approval.go`
+- [X] T053 [US3] Wire autosave at stable transitions, resume-time source revalidation, confirmation clearing, and interrupted-apply reconciliation in `tui/internal/review/reducer.go`
 - [ ] T054 [US3] Implement the external-validator contract handshake and failure rules, run configured validators through the bounded process runner, submit redacted digest-bound results for final assembly, and complete flow exit codes in `tui/cmd/zconfig/main.go` and `tui/internal/runner/validator.go`
 
 **Checkpoint**: US3 provides the complete non-secret review lifecycle and is safe against stale input,
@@ -160,15 +160,15 @@ and resume.
 
 ### Tests for User Story 4
 
-- [ ] T055 [P] [US4] Write one-use reveal/share authorization, expiry, fingerprint, remasking, and false-positive interaction tests in `core/tests/redaction_test.zig` and `tui/internal/review/secrets_test.go`
-- [ ] T056 [P] [US4] Write UI tests for already-concealed, suspected, revealed, share-confirmation, and expired states in `tui/internal/ui/sensitive_test.go`
-- [ ] T057 [P] [US4] Write integration tests scanning TUI output, protocol payloads, stdout, stderr, sessions, and audit events for disclosed fixture secrets in `tests/integration/secret_leak_test.go`
-- [ ] T058 [US4] Extend foundational typed redaction with session-bound fingerprints and explicit reveal/share authorization validation in `core/src/redact.zig`
+- [X] T055 [P] [US4] Write one-use reveal/share authorization, expiry, fingerprint, remasking, and false-positive interaction tests in `core/tests/redaction_test.zig` and `tui/internal/review/secrets_test.go`
+- [X] T056 [P] [US4] Write UI tests for already-concealed, suspected, revealed, share-confirmation, and expired states in `tui/internal/ui/sensitive_test.go`
+- [X] T057 [P] [US4] Write integration tests scanning TUI output, protocol payloads, stdout, stderr, sessions, and audit events for disclosed fixture secrets in `tests/integration/secret_leak_test.go`
+- [X] T058 [US4] Extend foundational typed redaction with session-bound fingerprints and explicit reveal/share authorization validation in `core/src/redact.zig`
 - [ ] T059 [US4] Verify and harden foundational redaction across every core success, error, diff, check, and diagnostic serialization path in `core/src/protocol.zig`
-- [ ] T060 [US4] Implement in-memory reveal and one-use share capabilities with automatic consumption and session-end destruction in `tui/internal/review/secrets.go`
-- [ ] T061 [US4] Implement exact-value remasking of agent stdout, stderr, errors, and candidate results before display or persistence in `tui/internal/runner/agent.go`
-- [ ] T062 [US4] Implement sensitive-item indicators, reveal confirmation, one-use share warning, and immediate conceal controls in `tui/internal/ui/sensitive.go`
-- [ ] T063 [US4] Extend session and audit serialization tests to reject or redact injected secret values in `tui/internal/session/store_test.go`
+- [X] T060 [US4] Implement in-memory reveal and one-use share capabilities with automatic consumption and session-end destruction in `tui/internal/review/secrets.go`
+- [X] T061 [US4] Implement exact-value remasking of agent stdout, stderr, errors, and candidate results before display or persistence in `tui/internal/runner/agent.go`
+- [X] T062 [US4] Implement sensitive-item indicators, reveal confirmation, one-use share warning, and immediate conceal controls in `tui/internal/ui/sensitive.go`
+- [X] T063 [US4] Extend session and audit serialization tests to reject or redact injected secret values in `tui/internal/session/store_test.go`
 
 **Checkpoint**: All four user stories work with sensitive values hidden by default and narrowly scoped
 human-controlled exceptions.
@@ -179,11 +179,11 @@ human-controlled exceptions.
 
 **Purpose**: Verify portability, performance, operator documentation, and final constitution compliance.
 
-- [ ] T064 [P] Add representative standard JSON, schema, proposal, duplicate-key, CRLF, Unicode, large-scale, and fixed 20-item usability fixtures with an answer key in `tests/fixtures/`
+- [X] T064 [P] Add representative standard JSON, schema, proposal, duplicate-key, CRLF, Unicode, large-scale, and fixed 20-item usability fixtures with an answer key in `tests/fixtures/`
 - [ ] T065 [P] Add protocol compatibility tests that run every golden document through both implementations in `tests/contract/compatibility_test.go`
-- [ ] T066 [P] Add 10 MiB, 100,000-node, 1,000-change load and navigation benchmarks in `core/tests/performance.zig` and `tui/internal/ui/benchmark_test.go`
+- [X] T066 [P] Add 10 MiB, 100,000-node, 1,000-change load and navigation benchmarks in `core/tests/performance.zig` and `tui/internal/ui/benchmark_test.go`
 - [ ] T067 Run and document native regular-file replacement behavior on Linux, macOS, and Windows in `specs/001-review-config-changes/platform-validation.md`
-- [ ] T068 Add installation, agent registration, supported schema subset, key bindings, recovery, and security-limit documentation in `README.md` and `docs/security.md`
+- [X] T068 Add installation, agent registration, supported schema subset, key bindings, recovery, and security-limit documentation in `README.md` and `docs/security.md`
 - [ ] T069 Execute every scenario in `specs/001-review-config-changes/quickstart.md`, run `specs/001-review-config-changes/usability-test.md` with at least five representative first-time users, and record timing, comprehension, critical-error, rating, assistance, and platform results in `specs/001-review-config-changes/validation-results.md`
 - [ ] T070 Re-run constitution gates, confirm all unsupported file types fail closed, and document any approved exceptions in `specs/001-review-config-changes/validation-results.md`
 

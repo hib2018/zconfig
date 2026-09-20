@@ -55,6 +55,42 @@ func TestStoreRejectsSensitiveRawValues(t *testing.T) {
 	}
 }
 
+func TestStoreAndAuditRejectInjectedSecretMaterial(t *testing.T) {
+	const secret = "fixture-secret-injected"
+	for _, mutate := range []func(*review.Session){
+		func(s *review.Session) {
+			s.ActiveProposal.Items[0].Sensitivity = review.SensitivitySchema
+			value := json.RawMessage(`"` + secret + `"`)
+			s.ActiveProposal.Items[0].ProposedValue = &value
+		},
+		func(s *review.Session) {
+			s.ActiveProposal.Items[0].Sensitivity = review.SensitivitySuspected
+			value := json.RawMessage(`"` + secret + `"`)
+			s.ActiveProposal.Items[0].ExpectedOld = &value
+		},
+	} {
+		s := testSession()
+		mutate(&s)
+		root := t.TempDir()
+		if err := Save(root, s); err == nil {
+			t.Fatal("persisted injected sensitive material")
+		}
+		if data, err := os.ReadFile(Path(root, s.ReviewID)); err == nil && strings.Contains(string(data), secret) {
+			t.Fatal("failed save leaked sensitive material")
+		}
+	}
+
+	a := &Audit{sessionID: "review-1", appendLine: func(line []byte) error {
+		if strings.Contains(string(line), secret) {
+			t.Fatal("audit serialized injected secret material")
+		}
+		return nil
+	}}
+	if err := a.Append(AuditEvent{EventID: "event-1", OccurredAt: time.Now().UTC(), ActorType: "system", Action: "apply.failed", SourceDigest: testDigest, OutcomeCode: secret}); err == nil {
+		t.Fatal("audit accepted arbitrary secret-bearing outcome code")
+	}
+}
+
 func TestLoadRejectsUnknownVersionAndFields(t *testing.T) {
 	root := t.TempDir()
 	dir := filepath.Join(root, ".zconfig", "reviews")

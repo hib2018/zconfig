@@ -2,10 +2,123 @@ const std = @import("std");
 const source_index = @import("source_index.zig");
 const pointer = @import("pointer.zig");
 
+const max_source_bytes: usize = 10 * 1024 * 1024;
+
 pub const Operation = enum { add, replace, remove };
 pub const Edit = struct { path: []const u8, operation: Operation, value: ?[]const u8 = null };
 
 const Patch = struct { start: usize, end: usize, replacement: []u8, order: usize };
+
+pub const Fault = enum { none, temp_creation, write, flush, permission, recovery, replacement, locked, interrupt_after_recovery };
+
+pub const ApplyResult = struct {
+    source_digest_before: [71]u8,
+    source_digest_after: [71]u8,
+    recovery_available: bool,
+};
+
+pub fn applyInDir(
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    dir: std.Io.Dir,
+    sub_path: []const u8,
+    expected_digest: []const u8,
+    edits: []const Edit,
+) !ApplyResult {
+    return applyInDirWithFault(allocator, io, dir, sub_path, expected_digest, edits, .none);
+}
+
+pub fn applyInDirWithFault(
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    dir: std.Io.Dir,
+    sub_path: []const u8,
+    expected_digest: []const u8,
+    edits: []const Edit,
+    fault: Fault,
+) !ApplyResult {
+    const loaded = try readRegularFile(allocator, io, dir, sub_path);
+    defer allocator.free(loaded.bytes);
+    const before_digest = digest(loaded.bytes);
+    if (!std.mem.eql(u8, &before_digest, expected_digest)) return error.StaleSource;
+    const candidate = try compose(allocator, loaded.bytes, edits);
+    defer allocator.free(candidate);
+
+    return replaceCandidateInDirWithFault(allocator, io, dir, sub_path, expected_digest, candidate, fault);
+}
+
+pub fn replaceCandidateInDir(allocator: std.mem.Allocator, io: std.Io, dir: std.Io.Dir, sub_path: []const u8, expected_digest: []const u8, candidate: []const u8) !ApplyResult {
+    return replaceCandidateInDirWithFault(allocator, io, dir, sub_path, expected_digest, candidate, .none);
+}
+
+fn replaceCandidateInDirWithFault(allocator: std.mem.Allocator, io: std.Io, dir: std.Io.Dir, sub_path: []const u8, expected_digest: []const u8, candidate: []const u8, fault: Fault) !ApplyResult {
+    var candidate_json = std.json.parseFromSlice(std.json.Value, allocator, candidate, .{}) catch return error.InvalidResult;
+    defer candidate_json.deinit();
+    const loaded = try readRegularFile(allocator, io, dir, sub_path);
+    defer allocator.free(loaded.bytes);
+    const before_digest = digest(loaded.bytes);
+    if (!std.mem.eql(u8, &before_digest, expected_digest)) return error.StaleSource;
+
+    if (fault == .permission) return error.InjectedPermissionFailure;
+    const recovery_path = try std.fmt.allocPrint(allocator, "{s}.zconfig-recovery", .{sub_path});
+    defer allocator.free(recovery_path);
+    if (fault == .recovery) return error.InjectedRecoveryFailure;
+    try writeAtomic(io, dir, recovery_path, loaded.bytes, loaded.permissions, .none);
+    if (fault == .interrupt_after_recovery) return error.Interrupted;
+
+    // Re-read immediately before replacement so formatting-only concurrent
+    // changes invalidate the operation as well.
+    const fresh = try readRegularFile(allocator, io, dir, sub_path);
+    defer allocator.free(fresh.bytes);
+    const fresh_digest = digest(fresh.bytes);
+    if (!std.mem.eql(u8, &fresh_digest, expected_digest)) return error.StaleSource;
+
+    try writeAtomic(io, dir, sub_path, candidate, loaded.permissions, fault);
+    const after_digest = digest(candidate);
+    return .{ .source_digest_before = before_digest, .source_digest_after = after_digest, .recovery_available = true };
+}
+
+const LoadedFile = struct { bytes: []u8, permissions: std.Io.File.Permissions };
+
+fn readRegularFile(allocator: std.mem.Allocator, io: std.Io, dir: std.Io.Dir, sub_path: []const u8) !LoadedFile {
+    const path_stat = try dir.statFile(io, sub_path, .{ .follow_symlinks = false });
+    if (path_stat.kind != .file) return error.NotRegularFile;
+    var file = try dir.openFile(io, sub_path, .{});
+    defer file.close(io);
+    const stat = try file.stat(io);
+    if (stat.kind != .file) return error.NotRegularFile;
+    if (stat.size > max_source_bytes) return error.SourceTooLarge;
+    var buffer: [4096]u8 = undefined;
+    var reader = file.reader(io, &buffer);
+    const bytes = reader.interface.allocRemaining(allocator, .limited(max_source_bytes + 1)) catch |err| switch (err) {
+        error.StreamTooLong => return error.SourceTooLarge,
+        else => return err,
+    };
+    return .{ .bytes = bytes, .permissions = stat.permissions };
+}
+
+fn writeAtomic(io: std.Io, dir: std.Io.Dir, sub_path: []const u8, bytes: []const u8, permissions: std.Io.File.Permissions, fault: Fault) !void {
+    if (fault == .temp_creation) return error.InjectedTempCreationFailure;
+    var atomic = try dir.createFileAtomic(io, sub_path, .{ .permissions = permissions, .replace = true });
+    defer atomic.deinit(io);
+    if (fault == .write) return error.InjectedWriteFailure;
+    try atomic.file.writeStreamingAll(io, bytes);
+    if (fault == .flush) return error.InjectedFlushFailure;
+    try atomic.file.sync(io);
+    if (fault == .replacement) return error.InjectedReplacementFailure;
+    if (fault == .locked) return error.LockedDestination;
+    try atomic.replace(io);
+}
+
+fn digest(bytes: []const u8) [71]u8 {
+    var hash: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(bytes, &hash, .{});
+    var result: [71]u8 = undefined;
+    @memcpy(result[0..7], "sha256:");
+    const hex = std.fmt.bytesToHex(hash, .lower);
+    @memcpy(result[7..], &hex);
+    return result;
+}
 
 pub fn compose(allocator: std.mem.Allocator, source: []const u8, edits: []const Edit) ![]u8 {
     var index = try source_index.Index.build(allocator, source);

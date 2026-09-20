@@ -231,6 +231,9 @@ func validateAuditEvent(event AuditEvent) error {
 	if event.ProposalDigest != "" && !validDigest(event.ProposalDigest) {
 		return errors.New("invalid proposal digest")
 	}
+	if event.OutcomeCode != "" && !safeCode(event.OutcomeCode) {
+		return errors.New("invalid outcome code")
+	}
 	seen := map[string]bool{}
 	for _, id := range append(append([]string{}, event.ChangeIDs...), event.CommentIDs...) {
 		if !safeID(id) || seen[id] {
@@ -242,4 +245,25 @@ func validateAuditEvent(event AuditEvent) error {
 		return errors.New("invalid previous digest")
 	}
 	return nil
+}
+
+func safeCode(value string) bool {
+	if value == "" || len(value) > 128 {
+		return false
+	}
+	segmentStart := true
+	for _, r := range value {
+		if segmentStart && !(r >= 'a' && r <= 'z') {
+			return false
+		}
+		if r == '.' {
+			segmentStart = true
+			continue
+		}
+		if !(r >= 'a' && r <= 'z') && !(r >= '0' && r <= '9') && r != '_' {
+			return false
+		}
+		segmentStart = false
+	}
+	return !segmentStart
 }

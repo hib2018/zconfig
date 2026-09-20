@@ -28,10 +28,55 @@ pub fn main(init: std.process.Init) !void {
             return writeFailure(io, request.value.request_id, "proposal.invalid", "Proposal validation failed."),
         .validate_revision => writeRevisionValidation(allocator, request.value, &stdout.interface) catch
             return writeFailure(io, request.value.request_id, "revision.scope_violation", "Revision changed an item outside the authorized scope."),
-        else => try core.protocol.writeResponse(request.value, &stdout.interface),
+        .assemble_final => writeFinalAssembly(allocator, io, request.value, &stdout.interface) catch
+            return writeFailure(io, request.value.request_id, "approval.not_ready", "Final change set is not ready for confirmation."),
+        .apply_final => writeFinalApply(allocator, io, request.value, &stdout.interface) catch
+            return writeFailure(io, request.value.request_id, "apply.rejected", "Final confirmation or source validation failed."),
     }
     try stdout.interface.writeByte('\n');
     try stdout.flush();
+}
+
+fn nowMs(io: std.Io) i64 {
+    return @intCast(@divFloor(std.Io.Clock.real.now(io).nanoseconds, std.time.ns_per_ms));
+}
+
+fn writeFinalAssembly(allocator: std.mem.Allocator, io: std.Io, request: core.protocol.Request, writer: *std.Io.Writer) !void {
+    var payload = try std.json.parseFromValue(core.protocol.FinalAssemblyPayload, allocator, request.payload, .{});
+    defer payload.deinit();
+    var loaded = try core.document.load(allocator, io, payload.value.source_path);
+    defer loaded.deinit(allocator);
+    var assembled = try core.final_set.assemble(allocator, loaded.bytes, payload.value);
+    defer assembled.deinit();
+    const nonce = try core.final_set.issueCapability(allocator, io, payload.value.source_digest, &assembled.final_digest, nowMs(io));
+    try std.json.Stringify.value(.{
+        .protocol_version = core.protocol_version,
+        .request_id = request.request_id,
+        .ok = true,
+        .result_schema = "zconfig.final-change/1",
+        .result = .{ .final_change_digest = &assembled.final_digest, .source_digest = payload.value.source_digest, .approved_change_item_ids = assembled.approved_ids, .diff = assembled.candidate, .checks = &.{}, .confirmation_nonce = &nonce },
+    }, .{}, writer);
+}
+
+fn writeFinalApply(allocator: std.mem.Allocator, io: std.Io, request: core.protocol.Request, writer: *std.Io.Writer) !void {
+    var payload = try std.json.parseFromValue(core.protocol.ApplyPayload, allocator, request.payload, .{});
+    defer payload.deinit();
+    var loaded = try core.document.load(allocator, io, payload.value.source_path);
+    defer loaded.deinit(allocator);
+    const assembly_payload = core.protocol.FinalAssemblyPayload{ .source_path = payload.value.source_path, .source_digest = payload.value.source_digest, .proposal = payload.value.proposal, .decisions = payload.value.decisions, .comments = payload.value.comments, .external_checks = payload.value.external_checks };
+    var assembled = try core.final_set.assemble(allocator, loaded.bytes, assembly_payload);
+    defer assembled.deinit();
+    if (!std.mem.eql(u8, &assembled.final_digest, payload.value.final_change_digest)) return error.FinalDigestMismatch;
+    try core.final_set.consumeCapability(allocator, io, payload.value.confirmation_nonce, payload.value.source_digest, payload.value.final_change_digest, nowMs(io));
+    const result = try core.apply.replaceCandidateInDir(allocator, io, std.Io.Dir.cwd(), payload.value.source_path, payload.value.source_digest, assembled.candidate);
+    const recovery_path = try std.fmt.allocPrint(allocator, "{s}.zconfig-recovery", .{payload.value.source_path});
+    try std.json.Stringify.value(.{
+        .protocol_version = core.protocol_version,
+        .request_id = request.request_id,
+        .ok = true,
+        .result_schema = "zconfig.apply/1",
+        .result = .{ .source_digest_before = &result.source_digest_before, .source_digest_after = &result.source_digest_after, .outcome = "applied", .recovery = .{ .available = result.recovery_available, .path = recovery_path } },
+    }, .{}, writer);
 }
 
 fn writeRevisionValidation(allocator: std.mem.Allocator, request: core.protocol.Request, writer: *std.Io.Writer) !void {

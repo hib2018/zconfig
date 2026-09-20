@@ -12,7 +12,7 @@
         "source_digest": { "$ref": "#/$defs/digest" },
         "proposal": { "$ref": "proposal.schema.json" },
         "decisions": { "type": "object", "additionalProperties": { "enum": ["pending", "approved", "rejected"] } },
-        "comments": { "type": "array", "items": { "type": "object" } },
+        "comments": { "type": "array", "items": { "$ref": "#/$defs/commentState" } },
         "external_checks": { "type": "array", "items": { "$ref": "validation-result.schema.json" } }
       }
     },
@@ -31,6 +31,16 @@
     }
   ],
   "$defs": {
-    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "commentState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["comment_id", "change_id", "status"],
+      "properties": {
+        "comment_id": { "type": "string", "minLength": 1 },
+        "change_id": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["open", "agent_claimed", "human_confirmed"] }
+      }
+    }
   }
 }

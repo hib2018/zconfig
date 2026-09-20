@@ -56,6 +56,6 @@ specs/001-review-config-changes/       仕様、計画、契約、タスク
 docs/                                  利用者・開発者向け日本語文書
 ```
 
-## 未決定の設計課題
+## 最終確認 capability
 
-`assemble_final` と `apply_final` を別々の一回起動プロセスにしたまま、短命な確認 nonce を安全に検証する方法は最終決定していません。候補は、値を含まない短命な capability 記録を `.zconfig/runtime/` に置き、反映時に提案と判断を再送してコアが最終集合を再計算する方式です。実装前に契約へ明文化します。
+`assemble_final` と `apply_final` は別々の一回起動プロセスです。短命な確認 nonce は、値を含まない capability 記録として `.zconfig/runtime/` に保存します。反映時には提案、判断、コメント状態、外部検査結果を再送し、コアが最終集合を再計算します。source digest と final-change digest が記録と一致する場合だけ一回使用でき、期限切れ、セッション再開、内容変更では失効します。

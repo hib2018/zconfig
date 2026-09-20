@@ -48,6 +48,8 @@ pub const Loaded = struct {
 };
 
 pub fn load(allocator: std.mem.Allocator, io: std.Io, path: []const u8) !Loaded {
+    const path_stat = try std.Io.Dir.cwd().statFile(io, path, .{ .follow_symlinks = false });
+    if (path_stat.kind != .file) return error.NotRegularFile;
     var file = try std.Io.Dir.cwd().openFile(io, path, .{});
     defer file.close(io);
     const stat = try file.stat(io);

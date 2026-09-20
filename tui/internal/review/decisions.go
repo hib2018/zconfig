@@ -32,7 +32,7 @@ func (s *State) SetDecision(changeID string, decision Decision) error {
 				s.invalidateFinalConfirmation()
 			}
 			s.Readiness()
-			return nil
+			return s.stableTransition()
 		}
 	}
 	return errors.New("change item not found")
@@ -68,7 +68,7 @@ func (s *State) ConfirmVisibleApproval(preview BulkApprovalPreview) error {
 	}
 	s.invalidateFinalConfirmation()
 	s.Readiness()
-	return nil
+	return s.stableTransition()
 }
 
 func (s *State) Readiness() ReadinessResult {

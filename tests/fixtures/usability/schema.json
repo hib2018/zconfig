@@ -1,0 +1,1 @@
+{"type":"object","properties":{"password":{"type":"string","x-zconfig-sensitive":true},"items":{"type":"array","items":{"type":"string"}}}}

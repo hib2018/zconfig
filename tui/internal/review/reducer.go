@@ -1,14 +1,18 @@
 package review
 
-import "strings"
+import (
+	"errors"
+	"strings"
+)
 
 type Mode string
 
 const (
-	ModeList   Mode = "list"
-	ModeDetail Mode = "detail"
-	ModeDiff   Mode = "diff"
-	ModeHelp   Mode = "help"
+	ModeList     Mode = "list"
+	ModeDetail   Mode = "detail"
+	ModeDiff     Mode = "diff"
+	ModeHelp     Mode = "help"
+	ModeApproval Mode = "approval"
 )
 
 type State struct {
@@ -26,6 +30,57 @@ type State struct {
 	Filter                  string
 	EditingFilter           bool
 	Error                   string
+	OnStableTransition      func(State) error
+}
+
+func RestoreSession(session Session, currentSourceDigest string) (State, error) {
+	if session.Source.Digest != currentSourceDigest {
+		return State{}, errors.New("source digest changed since session save")
+	}
+	state := NewState(session.ActiveProposal.Items)
+	state.Comments = append([]Comment(nil), session.Comments...)
+	state.Lifecycle = session.Lifecycle
+	state.FinalConfirmationDigest = ""
+	return state, nil
+}
+
+func (s *State) ReconcileInterruptedApply(sourceDigestBefore, sourceDigestAfter, currentSourceDigest string) error {
+	s.FinalConfirmationDigest = ""
+	switch currentSourceDigest {
+	case sourceDigestBefore:
+		s.Lifecycle = LifecycleReady
+	case sourceDigestAfter:
+		s.Lifecycle = LifecycleApplied
+	default:
+		s.Lifecycle = LifecycleReviewing
+		return errors.New("source digest does not match pre-apply or applied content")
+	}
+	return s.stableTransition()
+}
+
+func (s *State) stableTransition() error {
+	if s.OnStableTransition == nil {
+		return nil
+	}
+	if err := s.OnStableTransition(*s); err != nil {
+		s.Error = "autosave failed: " + err.Error()
+		return err
+	}
+	return nil
+}
+
+func (s *State) SelectedItem() *ChangeItem {
+	visible := s.VisibleItems()
+	if len(visible) == 0 {
+		return nil
+	}
+	id := visible[min(s.Selected, len(visible)-1)].ChangeID
+	for i := range s.Items {
+		if s.Items[i].ChangeID == id {
+			return &s.Items[i]
+		}
+	}
+	return nil
 }
 
 func NewState(items []ChangeItem) State {

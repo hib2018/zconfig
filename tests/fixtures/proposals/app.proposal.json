@@ -1,0 +1,12 @@
+{
+  "proposal_id": "app-review",
+  "revision": 1,
+  "source_digest": "sha256:d27a1062374497af79529389b7766ee5c46447e69a4c7a9cb13e7e2763ddf6cf",
+  "created_at": "2026-09-20T00:00:00Z",
+  "producer": "fixture",
+  "items": [
+    {"change_id": "theme", "path": "/ui/theme", "operation": "replace", "expected_old": "light", "proposed_value": "dark", "explanation": "暗い配色へ切り替える"},
+    {"change_id": "cache", "path": "/server/cache_enabled", "operation": "add", "proposed_value": true, "explanation": "応答キャッシュを有効にする"},
+    {"change_id": "legacy", "path": "/server/legacy", "operation": "remove", "expected_old": true, "explanation": "旧互換モードを終了する"}
+  ]
+}

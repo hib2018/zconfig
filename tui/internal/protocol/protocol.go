@@ -71,10 +71,19 @@ type InspectSource struct {
 	SchemaPath string `json:"schema_path,omitempty"`
 }
 type ApplyFinal struct {
-	SourcePath        string `json:"source_path"`
-	SourceDigest      string `json:"source_digest"`
-	FinalChangeDigest string `json:"final_change_digest"`
-	ConfirmationNonce string `json:"confirmation_nonce"`
+	SourcePath        string             `json:"source_path"`
+	SourceDigest      string             `json:"source_digest"`
+	FinalChangeDigest string             `json:"final_change_digest"`
+	ConfirmationNonce string             `json:"confirmation_nonce"`
+	Proposal          json.RawMessage    `json:"proposal"`
+	Decisions         map[string]string  `json:"decisions"`
+	Comments          []FinalComment     `json:"comments"`
+	ExternalChecks    []ValidationResult `json:"external_checks"`
+}
+type FinalComment struct {
+	CommentID string `json:"comment_id"`
+	ChangeID  string `json:"change_id"`
+	Status    string `json:"status"`
 }
 type InspectionResult struct {
 	SourceDigest string    `json:"source_digest"`

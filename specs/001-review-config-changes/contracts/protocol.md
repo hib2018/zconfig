@@ -104,9 +104,16 @@ validator is `unverified`; timeout, non-zero exit, malformed output, digest mism
 failed result blocks final assembly. Validator output is untrusted, bounded, and redacted before it
 is converted into a `CheckResult`.
 
-The core emits a short-lived confirmation nonce only with the final preview. Any changed source,
-proposal, decision, comment, check, process restart, or session resume invalidates it. The core accepts
-the nonce once and only for the exact final change-set digest.
+The validator contract is a single raw JSON request and response on stdin/stdout, not a core or
+agent protocol-envelope operation. Registration's `protocol_major` is its preflight contract
+negotiation; v1 runners strictly validate both document shapes and the returned candidate digest.
+
+The core emits a short-lived confirmation nonce only with the final preview. It stores a value-free,
+0600 capability record under `.zconfig/runtime/` containing only the nonce, issue/expiry time, source
+digest, and final-change digest. `apply_final` resends the proposal, decisions, comment states, and
+external-check results; the core recomputes the final set and requires an exact digest match before
+consuming the capability. Any changed source, proposal, decision, comment, check, expiry, process
+restart cleanup, or session resume invalidates it. The nonce is accepted once only.
 
 ## Agent operations
 

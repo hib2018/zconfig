@@ -137,14 +137,23 @@ pub const FinalAssemblyPayload = struct {
     source_digest: []const u8,
     proposal: Proposal,
     decisions: std.json.Value,
-    comments: []const ReviewComment,
+    comments: []const FinalComment,
     external_checks: []const std.json.Value,
+};
+pub const FinalComment = struct {
+    comment_id: []const u8,
+    change_id: []const u8,
+    status: enum { open, agent_claimed, human_confirmed },
 };
 pub const ApplyPayload = struct {
     source_path: []const u8,
     source_digest: []const u8,
     final_change_digest: []const u8,
     confirmation_nonce: []const u8,
+    proposal: Proposal,
+    decisions: std.json.Value,
+    comments: []const FinalComment,
+    external_checks: []const std.json.Value,
 };
 
 fn validatePayload(operation: Operation, schema: []const u8, payload: std.json.Value) !void {

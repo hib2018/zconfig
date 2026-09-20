@@ -53,3 +53,18 @@ pub fn fingerprint(value_bytes: []const u8, session_key: []const u8) [76]u8 {
     @memcpy(result[12..], &hex);
     return result;
 }
+
+pub const Authorization = struct {
+    change_id: []const u8,
+    fingerprint_value: []const u8,
+    capability: enum { reveal, share_once },
+    expires_at_ms: i64,
+    consumed: bool = false,
+
+    pub fn validate(self: *Authorization, now_ms: i64, change_id: []const u8, expected_fingerprint: []const u8) !void {
+        if (self.consumed) return error.AuthorizationConsumed;
+        if (now_ms > self.expires_at_ms) return error.AuthorizationExpired;
+        if (!std.mem.eql(u8, self.change_id, change_id) or !std.mem.eql(u8, self.fingerprint_value, expected_fingerprint)) return error.AuthorizationMismatch;
+        if (self.capability == .share_once) self.consumed = true;
+    }
+};

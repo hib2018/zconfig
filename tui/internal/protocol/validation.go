@@ -418,6 +418,24 @@ func validateApplyRequest(data []byte) error {
 	if v.SourcePath == "" || !validDigest(v.SourceDigest) || !validDigest(v.FinalChangeDigest) || len(v.ConfirmationNonce) < 32 {
 		return errors.New("invalid apply request")
 	}
+	if err := validateProposal(v.Proposal); err != nil {
+		return err
+	}
+	for _, decision := range v.Decisions {
+		if decision != "pending" && decision != "approved" && decision != "rejected" {
+			return errors.New("invalid decision")
+		}
+	}
+	for _, comment := range v.Comments {
+		if comment.CommentID == "" || comment.ChangeID == "" || (comment.Status != "open" && comment.Status != "agent_claimed" && comment.Status != "human_confirmed") {
+			return errors.New("invalid comment state")
+		}
+	}
+	for _, check := range v.ExternalChecks {
+		if !validDigest(check.SubjectDigest) || validateChecks(check.Checks) != nil {
+			return errors.New("invalid external check")
+		}
+	}
 	return nil
 }
 func validateApplyResult(data []byte) error {

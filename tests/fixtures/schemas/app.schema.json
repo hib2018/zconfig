@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "required": ["ui", "server", "auth"],
+  "properties": {
+    "ui": {"type": "object", "properties": {"theme": {"type": "string", "enum": ["light", "dark"], "description": "画面テーマ"}}},
+    "server": {"type": "object", "properties": {"timeout_ms": {"type": "integer", "minimum": 100, "maximum": 30000}}},
+    "auth": {"type": "object", "properties": {"api_token": {"type": "string", "x-zconfig-sensitive": true}}}
+  }
+}
