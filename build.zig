@@ -20,6 +20,17 @@ pub fn build(b: *std.Build) void {
     });
     b.installArtifact(exe);
 
+    const contract_probe = b.addExecutable(.{
+        .name = "zconfig-contract",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("core/src/contract_probe.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{.{ .name = "zconfig_core", .module = core_module }},
+        }),
+    });
+    b.installArtifact(contract_probe);
+
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());
     if (b.args) |args| run_cmd.addArgs(args);

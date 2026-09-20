@@ -121,10 +121,11 @@ pub fn assemble(allocator: std.mem.Allocator, source: []const u8, payload: proto
         }, .value = value });
         try ids.append(allocator, try allocator.dupe(u8, item.change_id));
     }
-    for (payload.external_checks) |check_set| try validateChecks(check_set);
     const candidate = try apply.compose(allocator, source, edits.items);
     errdefer allocator.free(candidate);
-    return .{ .allocator = allocator, .candidate = candidate, .approved_ids = try ids.toOwnedSlice(allocator), .final_digest = digest(candidate) };
+    const candidate_digest = digest(candidate);
+    for (payload.external_checks) |check_set| try validateChecks(check_set, &candidate_digest);
+    return .{ .allocator = allocator, .candidate = candidate, .approved_ids = try ids.toOwnedSlice(allocator), .final_digest = candidate_digest };
 }
 
 pub fn renderDiff(
@@ -169,11 +170,17 @@ fn containsID(ids: []const []const u8, expected: []const u8) bool {
     return false;
 }
 
-fn validateChecks(value: std.json.Value) !void {
+fn validateChecks(value: std.json.Value, expected_digest: []const u8) !void {
     const object = switch (value) {
         .object => |v| v,
         else => return error.InvalidCheckResult,
     };
+    const subject_value = object.get("subject_digest") orelse return error.InvalidCheckResult;
+    const subject_digest = switch (subject_value) {
+        .string => |v| v,
+        else => return error.InvalidCheckResult,
+    };
+    if (!std.mem.eql(u8, subject_digest, expected_digest)) return error.CheckDigestMismatch;
     const checks_value = object.get("checks") orelse return error.InvalidCheckResult;
     const checks = switch (checks_value) {
         .array => |v| v,

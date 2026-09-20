@@ -95,11 +95,22 @@ test "pending decisions unresolved comments and failed checks block assembly" {
     try check_array.append(.{ .object = check_object });
     var set_object: std.json.ObjectMap = .empty;
     defer set_object.deinit(std.testing.allocator);
+    const expected_digest = final_set.digest("{\"a\":10,\"b\":2}");
+    try set_object.put(std.testing.allocator, "subject_digest", .{ .string = &expected_digest });
     try set_object.put(std.testing.allocator, "checks", .{ .array = check_array });
     const checks = [_]std.json.Value{.{ .object = set_object }};
     const failed = try payload(std.testing.allocator, "approved", "rejected", &.{}, &checks);
     defer freePayload(std.testing.allocator, failed);
     try std.testing.expectError(error.MandatoryCheckFailed, final_set.assemble(std.testing.allocator, source, failed.value));
+
+    var wrong_set: std.json.ObjectMap = .empty;
+    defer wrong_set.deinit(std.testing.allocator);
+    try wrong_set.put(std.testing.allocator, "subject_digest", .{ .string = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" });
+    try wrong_set.put(std.testing.allocator, "checks", .{ .array = check_array });
+    const wrong_checks = [_]std.json.Value{.{ .object = wrong_set }};
+    const mismatched = try payload(std.testing.allocator, "approved", "rejected", &.{}, &wrong_checks);
+    defer freePayload(std.testing.allocator, mismatched);
+    try std.testing.expectError(error.CheckDigestMismatch, final_set.assemble(std.testing.allocator, source, mismatched.value));
 }
 
 test "capability is digest bound expiring and one use" {

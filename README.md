@@ -43,8 +43,8 @@ zconfig 自身は、曖昧な依頼から変更案を生成する汎用チャッ
 | 実装済み | 変更項目の一覧・詳細・差分・絞り込み、狭い端末とモノクロ表示、コメント／限定修正の状態管理 |
 | 実装済み | 項目ごとの承認・却下、セッション保存と再開、最終集合の再計算、短命な確認 capability、安全な原子的反映と復旧 |
 | 実装済み | 値を含まない監査ログ、機密値の一時表示・一回限り共有・エージェント出力の再マスク |
-| 実装済み（接続待ち） | 外部バリデーターの厳格な1往復ランナー、最終承認 UI コンポーネント |
-| 未実装 | 公開 `review` コマンドからコメント・承認・バリデーター・反映までを接続する完全な対話フロー |
+| 実装済み | 外部バリデーターの厳格な1往復ランナー、`apply` コマンドの最終差分・明示確認・反映フロー |
+| 未実装 | 公開 `review` TUI 内からコメント・承認・反映までを完結させる対話フロー |
 | 将来 | JSONC、TOML、YAML、zintent の終盤工程への汎用統合 |
 
 詳細な進捗は [tasks.md](specs/001-review-config-changes/tasks.md) を参照してください。
@@ -108,11 +108,29 @@ go build -o ./zig-out/bin/zconfig ./tui/cmd/zconfig
   --source ./app.json \
   --schema ./app.schema.json \
   --core ./zig-out/bin/zconfig-core
+
+# 全項目の判断と登録済みバリデーターを指定して最終差分を表示
+./zig-out/bin/zconfig apply ./app.proposal.json \
+  --source ./app.json \
+  --schema ./app.schema.json \
+  --approve change-theme \
+  --reject change-legacy \
+  --validator project-check \
+  --config ./commands.json \
+  --core ./zig-out/bin/zconfig-core
+
+# 表示した差分を確認後、同じ指定に明示確認を追加して反映
+./zig-out/bin/zconfig apply ./app.proposal.json \
+  --source ./app.json \
+  --approve change-theme \
+  --reject change-legacy \
+  --confirm \
+  --core ./zig-out/bin/zconfig-core
 ```
 
 `--schema` は省略できます。色を使えない端末では `--monochrome` を追加してください。提案ファイルの形式と操作の考え方は [レビューワークフロー](docs/workflow.md) を参照してください。
 
-現時点の `review` コマンドは読み取り専用画面までです。承認・反映の部品とコア操作はテスト可能ですが、公開 CLI の一連のキー操作にはまだ接続されていません。
+現時点の `review` コマンドは読み取り専用画面までです。反映は独立した `apply` コマンドで、すべての項目に `--approve` または `--reject` を一度だけ指定します。`--confirm` がない実行は最終差分を表示して終了コード2で無変更終了し、バリデーター失敗は終了コード3、その他のエラーは終了コード1です。
 
 ## コマンド登録
 

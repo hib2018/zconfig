@@ -86,6 +86,32 @@ type FinalComment struct {
 	ChangeID  string `json:"change_id"`
 	Status    string `json:"status"`
 }
+type FinalAssembly struct {
+	SourcePath     string             `json:"source_path"`
+	SchemaPath     string             `json:"schema_path,omitempty"`
+	SourceDigest   string             `json:"source_digest"`
+	Proposal       json.RawMessage    `json:"proposal"`
+	Decisions      map[string]string  `json:"decisions"`
+	Comments       []FinalComment     `json:"comments"`
+	ExternalChecks []ValidationResult `json:"external_checks"`
+}
+type FinalAssemblyResult struct {
+	FinalChangeDigest string        `json:"final_change_digest"`
+	SourceDigest      string        `json:"source_digest"`
+	ApprovedIDs       []string      `json:"approved_change_item_ids"`
+	Diff              string        `json:"diff"`
+	Checks            []CheckResult `json:"checks"`
+	ConfirmationNonce string        `json:"confirmation_nonce"`
+}
+type ApplyResult struct {
+	SourceDigestBefore string `json:"source_digest_before"`
+	SourceDigestAfter  string `json:"source_digest_after"`
+	Outcome            string `json:"outcome"`
+	Recovery           struct {
+		Available bool   `json:"available"`
+		Path      string `json:"path,omitempty"`
+	} `json:"recovery"`
+}
 type InspectionResult struct {
 	SourceDigest string    `json:"source_digest"`
 	ByteLength   int64     `json:"byte_length"`

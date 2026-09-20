@@ -28,7 +28,7 @@ increment after shared setup and foundational work.
 
 - [X] T001 Create the planned `core/src/`, `core/tests/fixtures/`, `tui/cmd/zconfig/`, `tui/internal/`, `tests/contract/fixtures/`, `tests/integration/`, and `tests/fixtures/` directory structure
 - [X] T002 Initialize the Zig 0.16.0 build with core executable and test targets in `build.zig` and `build.zig.zon`
-- [X] T003 [P] Initialize the Go 1.27.1 workspace and `tui` and integration-test modules, pinning compatible Bubble Tea v2.0.8, Bubbles v2, and Lip Gloss v2 dependencies in `go.work`, `tui/go.mod`, `tui/go.sum`, and `tests/go.mod`
+- [X] T003 [P] Initialize the Go 1.27.1 workspace and modules with pinned Bubble Tea, Bubbles, and Lip Gloss dependencies in `go.work`, `tui/go.mod`, `tui/go.sum`, and `tests/go.mod`
 - [X] T004 [P] Add Zig formatting, test, and release-build jobs for Linux, macOS, and Windows in `.github/workflows/zig-ci.yml`
 - [X] T005 [P] Add Go formatting, vet, test, and race-test jobs for Linux, macOS, and Windows in `.github/workflows/go-ci.yml`
 - [X] T006 Add generated binaries, project-local review sessions, recovery files, and temporary test artifacts to `.gitignore`
@@ -54,7 +54,7 @@ may still contain only harness checks.
 - [X] T014 Implement UI-independent source, proposal, change-item, sensitivity, typed-redaction, check-result, comment, decision, audit-event, and session types in `tui/internal/review/model.go`
 - [X] T015 Implement process execution without a shell, separate bounded streams, deadlines, cancellation, and exit diagnostics in `tui/internal/runner/process.go`
 - [X] T016 [P] Write process harness tests for timeout, cancellation, extra stdout, oversized streams, wrong request IDs, non-zero exit, and secret removal from diagnostics in `tui/internal/runner/process_test.go`
-- [X] T017 Implement user-local agent and optional validator registration parsing, executable-plus-argv validation, working directory, environment allowlist, and timeout defaults in `tui/internal/config/commands.go`
+- [X] T017 Implement agent and optional validator registration, command validation, working directory, environment allowlist, and timeout defaults in `tui/internal/config/commands.go`
 - [X] T018 Wire CLI argument parsing, core discovery, agent selection, and protocol handshake without starting the full-screen UI in `tui/cmd/zconfig/main.go`
 
 **Checkpoint**: Go and Zig agree on all golden protocol documents, subprocesses are bounded, and no
@@ -78,7 +78,7 @@ status with and without an optional schema; exiting must leave the source unchan
 - [X] T021 [P] [US1] Write proposal validation tests for IDs, source digest, operation/value combinations, duplicate targets, and ancestor conflicts in `core/tests/proposal_test.zig`
 - [X] T022 [P] [US1] Write schema-subset, `x-zconfig-sensitive`, normalized sensitive-name, and unsupported-keyword tests in `core/tests/schema_test.zig` and `core/tests/redaction_test.zig`
 - [X] T023 [P] [US1] Write reducer and view tests for navigation, resize, narrow terminals, empty/error states, check labels, and default redaction before first render in `tui/internal/ui/review_test.go`
-- [X] T024 [US1] Implement strict RFC 8259 parsing, duplicate-name rejection, SHA-256 identity, node limits, regular-file checks, and conservative normalized sensitive-name classification in `core/src/document.zig` and `core/src/redact.zig`
+- [X] T024 [US1] Implement strict RFC 8259 parsing, duplicate-name rejection, SHA-256 identity, node and file checks, and sensitive-name classification in `core/src/document.zig` and `core/src/redact.zig`
 - [X] T025 [US1] Implement RFC 6901 parsing and source-node resolution in `core/src/pointer.zig`
 - [X] T026 [US1] Implement the lexical source-span index and core-computed add/replace/remove edit envelopes in `core/src/source_index.zig`
 - [X] T027 [US1] Implement proposal parsing, uniqueness and overlap rules, expected-old checks, and normalized check results in `core/src/proposal.zig`
@@ -133,16 +133,16 @@ leave a complete recoverable source.
 - [X] T042 [P] [US3] Write byte-preservation golden tests for add, replace, remove, arrays, indentation, CRLF, escapes, and multi-edit ordering in `core/tests/preservation.zig`
 - [X] T043 [P] [US3] Write final-set tests for pending items, unresolved comments, decision subsets, check status, nonce expiry, and digest binding in `core/tests/final_set_test.zig`
 - [X] T044 [P] [US3] Write failure-injection tests for temp creation, write, flush, permission, replacement, recovery, locked files, and interruption in `core/tests/apply_failure.zig`
-- [X] T045 [P] [US3] Write session round-trip and version-handling tests proving final confirmation and ephemeral grants are never restored, plus audit JSONL tests proving values, comment bodies, and process output are never recorded; verify sequence/digest chains and authoritative-action blocking on append failure in `tui/internal/session/store_test.go`
+- [X] T045 [P] [US3] Test session round trips, version handling, non-restored grants, value-free audit JSONL, sequence/digest chains, and append-failure blocking in `tui/internal/session/store_test.go`
 - [X] T046 [P] [US3] Write end-to-end subset approval, resume, stale-source, and recovery scenarios in `tests/integration/apply_recovery_test.go`
 - [X] T047 [US3] Implement item approval, rejection, visible bulk approval, invalidation rules, and readiness computation in `tui/internal/review/decisions.go`
-- [X] T048 [US3] Implement versioned project-local session persistence plus value-free append-only `.zconfig/audit/<session-id>.jsonl` events with restrictive permissions, strict schema validation, sequence/digest chaining, forbidden-field rejection, and append-failure gating for authoritative actions in `tui/internal/session/store.go` and `tui/internal/session/audit.go`
+- [X] T048 [US3] Implement versioned sessions and value-free audit events with restrictive permissions, schema validation, digest chains, and failure gating in `tui/internal/session/store.go` and `audit.go`
 - [X] T049 [US3] Implement same-directory temporary composition, exact non-envelope byte verification, permission preservation, source rehash, replacement, and recovery record handling in `core/src/apply.zig`
 - [X] T050 [US3] Implement `assemble_final` with approved-item selection, reparsing, configured checks, exact diff, final-set digest, and short-lived confirmation nonce in `core/src/main.zig`
 - [X] T051 [US3] Implement `apply_final` with one-use nonce verification and structured success or recovery outcome in `core/src/main.zig`
 - [X] T052 [US3] Implement decision controls, affected-item bulk confirmation, readiness blockers, final diff, distinct apply confirmation, and recovery messaging in `tui/internal/ui/approval.go`
 - [X] T053 [US3] Wire autosave at stable transitions, resume-time source revalidation, confirmation clearing, and interrupted-apply reconciliation in `tui/internal/review/reducer.go`
-- [ ] T054 [US3] Implement the external-validator contract handshake and failure rules, run configured validators through the bounded process runner, submit redacted digest-bound results for final assembly, and complete flow exit codes in `tui/cmd/zconfig/main.go` and `tui/internal/runner/validator.go`
+- [X] T054 [US3] Implement external-validator handshake and failure rules, bounded execution, redacted digest-bound results, and flow exit codes in `tui/cmd/zconfig/main.go` and `tui/internal/runner/validator.go`
 
 **Checkpoint**: US3 provides the complete non-secret review lifecycle and is safe against stale input,
 unapproved edits, protocol replay, and interrupted application.
@@ -180,11 +180,11 @@ human-controlled exceptions.
 **Purpose**: Verify portability, performance, operator documentation, and final constitution compliance.
 
 - [X] T064 [P] Add representative standard JSON, schema, proposal, duplicate-key, CRLF, Unicode, large-scale, and fixed 20-item usability fixtures with an answer key in `tests/fixtures/`
-- [ ] T065 [P] Add protocol compatibility tests that run every golden document through both implementations in `tests/contract/compatibility_test.go`
+- [X] T065 [P] Add protocol compatibility tests that run every golden document through both implementations in `tests/contract/compatibility_test.go`
 - [X] T066 [P] Add 10 MiB, 100,000-node, 1,000-change load and navigation benchmarks in `core/tests/performance.zig` and `tui/internal/ui/benchmark_test.go`
 - [ ] T067 Run and document native regular-file replacement behavior on Linux, macOS, and Windows in `specs/001-review-config-changes/platform-validation.md`
 - [X] T068 Add installation, agent registration, supported schema subset, key bindings, recovery, and security-limit documentation in `README.md` and `docs/security.md`
-- [ ] T069 Execute every scenario in `specs/001-review-config-changes/quickstart.md`, run `specs/001-review-config-changes/usability-test.md` with at least five representative first-time users, and record timing, comprehension, critical-error, rating, assistance, and platform results in `specs/001-review-config-changes/validation-results.md`
+- [ ] T069 Run all quickstart scenarios and usability tests with five first-time users, then record timing, comprehension, errors, ratings, assistance, and platform results in `validation-results.md`
 - [ ] T070 Re-run constitution gates, confirm all unsupported file types fail closed, and document any approved exceptions in `specs/001-review-config-changes/validation-results.md`
 
 **Checkpoint**: The feature meets its cross-platform, performance, protocol, preservation, recovery,

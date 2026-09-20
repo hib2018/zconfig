@@ -11,6 +11,7 @@ vendor/
 
 # zconfig local state and recovery artifacts
 .zconfig/
+.ztasks/
 *.zconfig-recovery
 *.zconfig-tmp
 

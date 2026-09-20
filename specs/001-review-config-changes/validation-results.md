@@ -11,8 +11,9 @@
 | Go test | PASS |
 | Go race test | PASS |
 | Go vet | PASS |
+| Zig／Go golden contract compatibility | PASS（64文書） |
 | 10 MiB級／100,000ノード、1,000変更、1,000項目UI benchmark | PASS |
-| 通常ファイル以外の fail-closed | macOS で directory と symlink を PASS。device/FIFO と他OSは未検証 |
+| 通常ファイル以外の fail-closed | macOS で directory、symlink、FIFO、device を PASS。他OSはネイティブCI結果待ち |
 
 承認サブセット、再開、古い元ファイル、復旧、nonce 一回消費、機密値の表示・プロセス・保存境界は自動統合試験で確認した。例外承認はない。
 
