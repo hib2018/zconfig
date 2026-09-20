@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -27,6 +28,7 @@ type finalPreview struct {
 	FinalChangeDigest string   `json:"final_change_digest"`
 	SourceDigest      string   `json:"source_digest"`
 	ApprovedIDs       []string `json:"approved_change_item_ids"`
+	Diff              string   `json:"diff"`
 	Nonce             string   `json:"confirmation_nonce"`
 }
 
@@ -97,6 +99,33 @@ func TestSubsetApprovalResumeStaleSourceAndRecovery(t *testing.T) {
 	}
 	if response := apply(t, core, root, finalPayload, preview); response.OK {
 		t.Fatal("one-use confirmation nonce was accepted twice")
+	}
+
+	secretSource := []byte("{\"visible\":\"light\",\"credential\":\"old-schema-secret\",\"api_token\":\"old-name-secret\"}\n")
+	if err := os.WriteFile(filepath.Join(root, "secrets.json"), secretSource, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "secrets.schema.json"), []byte(`{"type":"object","properties":{"credential":{"type":"string","x-zconfig-sensitive":true}}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	secretDigest := shaDigest(secretSource)
+	secretProposal := map[string]any{
+		"proposal_id": "secret-preview", "revision": 1, "source_digest": secretDigest, "created_at": "2026-09-20T00:00:00Z",
+		"items": []map[string]any{
+			{"change_id": "visible", "path": "/visible", "operation": "replace", "expected_old": "light", "proposed_value": "dark", "explanation": "visible"},
+			{"change_id": "credential", "path": "/credential", "operation": "replace", "expected_old": "old-schema-secret", "proposed_value": "new-schema-secret", "explanation": "schema sensitive"},
+			{"change_id": "token", "path": "/api_token", "operation": "replace", "expected_old": "old-name-secret", "proposed_value": "new-name-secret", "explanation": "name sensitive"},
+		},
+	}
+	secretPayload := map[string]any{"source_path": "secrets.json", "schema_path": "secrets.schema.json", "source_digest": secretDigest, "proposal": secretProposal, "decisions": map[string]string{"visible": "approved", "credential": "approved", "token": "approved"}, "comments": []any{}, "external_checks": []any{}}
+	secretPreview := assemble(t, core, root, secretPayload)
+	for _, forbidden := range []string{"old-schema-secret", "new-schema-secret", "old-name-secret", "new-name-secret"} {
+		if strings.Contains(secretPreview.Diff, forbidden) {
+			t.Fatalf("final preview leaked %q: %s", forbidden, secretPreview.Diff)
+		}
+	}
+	if !strings.Contains(secretPreview.Diff, `- "light"`) || !strings.Contains(secretPreview.Diff, `+ "dark"`) || strings.Count(secretPreview.Diff, "[REDACTED]") != 4 {
+		t.Fatalf("unexpected redacted final diff: %s", secretPreview.Diff)
 	}
 }
 

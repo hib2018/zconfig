@@ -22,3 +22,12 @@ test "unsupported applicable keyword is unverified and annotation is recognized"
     defer sensitive.deinit();
     try std.testing.expect(schema.isSensitive(sensitive.parsed.value));
 }
+
+test "sensitivity lookup follows properties items and sensitive ancestors" {
+    var parsed = try schema.parse(std.testing.allocator,
+        \\{"type":"object","properties":{"plain":{"type":"string"},"secrets":{"type":"array","x-zconfig-sensitive":true,"items":{"type":"object","properties":{"value":{"type":"string"}}}}}}
+    );
+    defer parsed.deinit();
+    try std.testing.expect(!(try schema.isSensitiveAtPointer(std.testing.allocator, parsed.parsed.value, "/plain")));
+    try std.testing.expect(try schema.isSensitiveAtPointer(std.testing.allocator, parsed.parsed.value, "/secrets/0/value"));
+}

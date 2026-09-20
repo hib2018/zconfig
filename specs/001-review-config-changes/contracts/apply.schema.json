@@ -9,6 +9,7 @@
       "required": ["source_path", "source_digest", "final_change_digest", "confirmation_nonce", "proposal", "decisions", "comments", "external_checks"],
       "properties": {
         "source_path": { "type": "string", "minLength": 1 },
+        "schema_path": { "type": "string", "minLength": 1 },
         "source_digest": { "$ref": "#/$defs/digest" },
         "final_change_digest": { "$ref": "#/$defs/digest" },
         "confirmation_nonce": { "type": "string", "minLength": 32 },

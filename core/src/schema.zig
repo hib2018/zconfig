@@ -1,4 +1,5 @@
 const std = @import("std");
+const pointer = @import("pointer.zig");
 
 pub const Status = enum { passed, failed, unverified };
 pub const Result = struct {
@@ -100,6 +101,30 @@ pub fn isSensitive(schema_value: std.json.Value) bool {
     if (schema_value != .object) return false;
     const annotation = schema_value.object.get("x-zconfig-sensitive") orelse return false;
     return annotation == .bool and annotation.bool;
+}
+
+pub fn isSensitiveAtPointer(allocator: std.mem.Allocator, root: std.json.Value, path: []const u8) !bool {
+    var parsed_path = try pointer.parse(allocator, path);
+    defer parsed_path.deinit();
+    var current = root;
+    for (parsed_path.tokens) |token| {
+        if (isSensitive(current)) return true;
+        if (current != .object) return false;
+        if (current.object.get("properties")) |properties| {
+            if (properties == .object) {
+                if (properties.object.get(token)) |child| {
+                    current = child;
+                    continue;
+                }
+            }
+        }
+        if (current.object.get("items")) |items| {
+            current = items;
+            continue;
+        }
+        return false;
+    }
+    return isSensitive(current);
 }
 
 fn isSupported(key: []const u8) bool {

@@ -164,7 +164,7 @@ and resume.
 - [X] T056 [P] [US4] Write UI tests for already-concealed, suspected, revealed, share-confirmation, and expired states in `tui/internal/ui/sensitive_test.go`
 - [X] T057 [P] [US4] Write integration tests scanning TUI output, protocol payloads, stdout, stderr, sessions, and audit events for disclosed fixture secrets in `tests/integration/secret_leak_test.go`
 - [X] T058 [US4] Extend foundational typed redaction with session-bound fingerprints and explicit reveal/share authorization validation in `core/src/redact.zig`
-- [ ] T059 [US4] Verify and harden foundational redaction across every core success, error, diff, check, and diagnostic serialization path in `core/src/protocol.zig`
+- [X] T059 [US4] Verify and harden foundational redaction across every core success, error, diff, check, and diagnostic serialization path in `core/src/protocol.zig`
 - [X] T060 [US4] Implement in-memory reveal and one-use share capabilities with automatic consumption and session-end destruction in `tui/internal/review/secrets.go`
 - [X] T061 [US4] Implement exact-value remasking of agent stdout, stderr, errors, and candidate results before display or persistence in `tui/internal/runner/agent.go`
 - [X] T062 [US4] Implement sensitive-item indicators, reveal confirmation, one-use share warning, and immediate conceal controls in `tui/internal/ui/sensitive.go`

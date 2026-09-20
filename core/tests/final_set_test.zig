@@ -41,6 +41,42 @@ test "approved subset is assembled while rejected item is excluded" {
     try std.testing.expectEqualStrings("a", result.approved_ids[0]);
 }
 
+test "final diff preserves normal bytes and redacts schema and name sensitive values" {
+    const allocator = std.testing.allocator;
+    const diff_source = "{\"theme\":\"light\",\"token\":\"old-token\",\"credential\":\"old-credential\"}";
+    const diff_digest = final_set.digest(diff_source);
+    const items = [_]protocol.ChangeItem{
+        .{ .change_id = "theme", .path = "/theme", .operation = .replace, .expected_old = .{ .string = "light" }, .proposed_value = .{ .string = "dark" }, .explanation = "theme" },
+        .{ .change_id = "token", .path = "/token", .operation = .replace, .expected_old = .{ .string = "old-token" }, .proposed_value = .{ .string = "new-token" }, .explanation = "token" },
+        .{ .change_id = "credential", .path = "/credential", .operation = .replace, .expected_old = .{ .string = "old-credential" }, .proposed_value = .{ .string = "new-credential" }, .explanation = "credential" },
+    };
+    var decisions: std.json.ObjectMap = .empty;
+    defer decisions.deinit(allocator);
+    inline for (.{ "theme", "token", "credential" }) |id| try decisions.put(allocator, id, .{ .string = "approved" });
+    const value = protocol.FinalAssemblyPayload{
+        .source_path = "app.json",
+        .source_digest = &diff_digest,
+        .proposal = .{ .proposal_id = "p", .revision = 1, .source_digest = &diff_digest, .created_at = "2026-09-20T00:00:00Z", .items = &items },
+        .decisions = .{ .object = decisions },
+        .comments = &.{},
+        .external_checks = &.{},
+    };
+    var assembled = try final_set.assemble(allocator, diff_source, value);
+    defer assembled.deinit();
+    var parsed_schema = try std.json.parseFromSlice(std.json.Value, allocator,
+        \\{"type":"object","properties":{"credential":{"type":"string","x-zconfig-sensitive":true}}}
+    , .{});
+    defer parsed_schema.deinit();
+    const diff = try final_set.renderDiff(allocator, diff_source, assembled.candidate, value.proposal, assembled.approved_ids, parsed_schema.value);
+    defer allocator.free(diff);
+    try std.testing.expect(std.mem.indexOf(u8, diff, "- \"light\"\n+ \"dark\"") != null);
+    try std.testing.expect(std.mem.indexOf(u8, diff, "old-token") == null);
+    try std.testing.expect(std.mem.indexOf(u8, diff, "new-token") == null);
+    try std.testing.expect(std.mem.indexOf(u8, diff, "old-credential") == null);
+    try std.testing.expect(std.mem.indexOf(u8, diff, "new-credential") == null);
+    try std.testing.expectEqual(@as(usize, 4), std.mem.count(u8, diff, "[REDACTED]"));
+}
+
 test "pending decisions unresolved comments and failed checks block assembly" {
     const pending = try payload(std.testing.allocator, "pending", "rejected", &.{}, &.{});
     defer freePayload(std.testing.allocator, pending);

@@ -9,6 +9,7 @@
       "required": ["source_path", "source_digest", "proposal", "decisions", "comments", "external_checks"],
       "properties": {
         "source_path": { "type": "string", "minLength": 1 },
+        "schema_path": { "type": "string", "minLength": 1 },
         "source_digest": { "$ref": "#/$defs/digest" },
         "proposal": { "$ref": "proposal.schema.json" },
         "decisions": { "type": "object", "additionalProperties": { "enum": ["pending", "approved", "rejected"] } },

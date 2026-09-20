@@ -2,6 +2,9 @@ const std = @import("std");
 pub const protocol = @import("protocol.zig");
 const proposal = @import("proposal.zig");
 const apply = @import("apply.zig");
+const source_index = @import("source_index.zig");
+const redact = @import("redact.zig");
+const schema = @import("schema.zig");
 
 pub const Assembly = struct {
     allocator: std.mem.Allocator,
@@ -122,6 +125,48 @@ pub fn assemble(allocator: std.mem.Allocator, source: []const u8, payload: proto
     const candidate = try apply.compose(allocator, source, edits.items);
     errdefer allocator.free(candidate);
     return .{ .allocator = allocator, .candidate = candidate, .approved_ids = try ids.toOwnedSlice(allocator), .final_digest = digest(candidate) };
+}
+
+pub fn renderDiff(
+    allocator: std.mem.Allocator,
+    source: []const u8,
+    candidate: []const u8,
+    proposal_value: protocol.Proposal,
+    approved_ids: []const []const u8,
+    schema_root: ?std.json.Value,
+) ![]u8 {
+    var before_index = try source_index.Index.build(allocator, source);
+    defer before_index.deinit();
+    var after_index = try source_index.Index.build(allocator, candidate);
+    defer after_index.deinit();
+    var output: std.ArrayList(u8) = .empty;
+    errdefer output.deinit(allocator);
+
+    for (proposal_value.items) |item| {
+        if (!containsID(approved_ids, item.change_id)) continue;
+        const sensitive = redact.classify(item.path, if (schema_root) |root| try schema.isSensitiveAtPointer(allocator, root, item.path) else false) != .normal;
+        const before = if (item.operation == .add) null else (before_index.find(item.path) orelse return error.DiffTargetMissing).bytes(source);
+        const after = if (item.operation == .remove) null else (after_index.find(item.path) orelse return error.DiffTargetMissing).bytes(candidate);
+        try output.appendSlice(allocator, "@@ ");
+        try output.appendSlice(allocator, item.path);
+        try output.appendSlice(allocator, " @@\n");
+        if (before) |value| {
+            try output.appendSlice(allocator, "- ");
+            try output.appendSlice(allocator, if (sensitive) "[REDACTED]" else value);
+            try output.append(allocator, '\n');
+        }
+        if (after) |value| {
+            try output.appendSlice(allocator, "+ ");
+            try output.appendSlice(allocator, if (sensitive) "[REDACTED]" else value);
+            try output.append(allocator, '\n');
+        }
+    }
+    return output.toOwnedSlice(allocator);
+}
+
+fn containsID(ids: []const []const u8, expected: []const u8) bool {
+    for (ids) |id| if (std.mem.eql(u8, id, expected)) return true;
+    return false;
 }
 
 fn validateChecks(value: std.json.Value) !void {

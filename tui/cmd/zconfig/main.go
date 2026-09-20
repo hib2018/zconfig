@@ -203,7 +203,7 @@ func sensitiveName(path string) bool {
 		return -1
 	}, part)
 	switch part {
-	case "password", "passwd", "secret", "token", "accesstoken", "refreshtoken", "apikey", "privatekey", "clientsecret", "credential", "credentials":
+	case "password", "passwd", "secret", "token", "accesstoken", "refreshtoken", "apikey", "apitoken", "privatekey", "clientsecret", "credential", "credentials":
 		return true
 	}
 	return false

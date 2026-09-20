@@ -17,8 +17,8 @@ pub fn isSensitiveName(path: []const u8) bool {
     }
     const normalized = normalized_buf[0..len];
     const names = [_][]const u8{
-        "password", "passwd",     "secret",       "token",      "accesstoken", "refreshtoken",
-        "apikey",   "privatekey", "clientsecret", "credential", "credentials",
+        "password", "passwd",   "secret",     "token",        "accesstoken", "refreshtoken",
+        "apikey",   "apitoken", "privatekey", "clientsecret", "credential",  "credentials",
     };
     for (names) |name| if (std.mem.eql(u8, normalized, name)) return true;
     return false;

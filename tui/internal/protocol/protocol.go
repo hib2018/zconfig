@@ -72,6 +72,7 @@ type InspectSource struct {
 }
 type ApplyFinal struct {
 	SourcePath        string             `json:"source_path"`
+	SchemaPath        string             `json:"schema_path,omitempty"`
 	SourceDigest      string             `json:"source_digest"`
 	FinalChangeDigest string             `json:"final_change_digest"`
 	ConfirmationNonce string             `json:"confirmation_nonce"`

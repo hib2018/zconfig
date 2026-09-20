@@ -95,8 +95,8 @@ Operation payloads and results are normative in these schemas:
 | `inspect_source` | source path and optional schema path | source identity, indexed settings, classifications | No |
 | `validate_proposal` | `zconfig.proposal/1` plus source path | normalized proposal and check results | No |
 | `validate_revision` | active proposal, allowed IDs, returned revision | accepted candidate or structured error | No |
-| `assemble_final` | proposal plus human decisions | final preview, diff, and check results | No |
-| `apply_final` | final change set, fresh confirmation nonce, source path | new digest and recovery outcome | Yes |
+| `assemble_final` | proposal, human decisions, and optional schema path | redacted final preview, diff, and check results | No |
+| `apply_final` | final change set, fresh confirmation nonce, source and optional schema path | new digest and recovery outcome | Yes |
 
 Configured external validators use `external-validator.schema.json`. They receive a path to a
 same-directory candidate file plus its digest, never an unapproved source mutation. A missing
@@ -114,6 +114,11 @@ digest, and final-change digest. `apply_final` resends the proposal, decisions, 
 external-check results; the core recomputes the final set and requires an exact digest match before
 consuming the capability. Any changed source, proposal, decision, comment, check, expiry, process
 restart cleanup, or session resume invalidates it. The nonce is accepted once only.
+
+When a schema path is supplied, `assemble_final` reloads it and independently recomputes sensitivity
+for every approved path. The final diff uses exact source/candidate bytes for normal values and the
+literal `[REDACTED]` for both sides of schema-sensitive or conservatively name-detected values. The
+schema path is resent with `apply_final`; raw sensitive values never appear in the preview response.
 
 ## Agent operations
 

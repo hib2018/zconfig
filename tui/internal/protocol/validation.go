@@ -351,6 +351,7 @@ func validateChecks(checks []CheckResult) error {
 
 type finalRequest struct {
 	SourcePath     string             `json:"source_path"`
+	SchemaPath     string             `json:"schema_path,omitempty"`
 	SourceDigest   string             `json:"source_digest"`
 	Proposal       proposalDocument   `json:"proposal"`
 	Decisions      map[string]string  `json:"decisions"`

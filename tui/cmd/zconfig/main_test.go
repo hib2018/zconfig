@@ -22,7 +22,7 @@ func TestApplyInspectionAndSensitiveFallback(t *testing.T) {
 	if proposal.Items[1].Sensitivity != review.SensitivitySuspected {
 		t.Fatal("sensitive-name fallback missing")
 	}
-	if sensitiveName("/ui/tokenizer") || !sensitiveName("/auth/API_Key") {
+	if sensitiveName("/ui/tokenizer") || !sensitiveName("/auth/API_Key") || !sensitiveName("/auth/api_token") {
 		t.Fatal("sensitive-name matching is not conservative")
 	}
 }

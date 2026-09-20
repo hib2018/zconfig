@@ -3,6 +3,7 @@ const redact = @import("redact");
 
 test "normalized conservative sensitive names" {
     try std.testing.expect(redact.isSensitiveName("/auth/api_key"));
+    try std.testing.expect(redact.isSensitiveName("/auth/api_token"));
     try std.testing.expect(redact.isSensitiveName("/clientSecret"));
     try std.testing.expect(!redact.isSensitiveName("/tokenizer"));
     try std.testing.expectEqual(redact.Sensitivity.schema_sensitive, redact.classify("/normal", true));

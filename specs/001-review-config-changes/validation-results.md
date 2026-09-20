@@ -23,7 +23,7 @@
 - lossless な限定編集: JSON の自動試験は PASS。TOML/YAML は対応済みとして表示していない。
 - portable core: Zig コアはネットワーク不要。Linux/Windows のネイティブ結果待ち。
 - incremental simplicity: 外部バリデーターは raw JSON 1往復として契約を明記。
-- secret redaction: 通常経路は PASS。最終 diff を含む全コア直列化境界の追加監査が残る。
+- secret redaction: PASS。最終 diff はスキーマを再読込し、通常値の実バイトを保持しながらスキーマ指定・名前検出の機密値を変更前後ともマスクする。
 
 ## 未完了のリリースゲート
 

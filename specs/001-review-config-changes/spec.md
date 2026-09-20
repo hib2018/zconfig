@@ -211,7 +211,9 @@ reveal and share only that item and verify that concealment returns when the ses
   provide a recoverable prior version or equivalent recovery path.
 - **FR-024**: Values identified as sensitive by schema annotation or conservative setting-name rules
   MUST be redacted from normal review displays, logs, and agent revision requests. Name-based
-  detections MUST be labeled as suspected rather than schema-verified.
+  detections MUST be labeled as suspected rather than schema-verified. Final assembly MUST reload
+  the supplied schema and recompute sensitivity in the Zig core; its diff MUST preserve exact bytes
+  for normal values and replace both sides of each sensitive value with `[REDACTED]`.
 - **FR-025**: Revealing or sharing a sensitive value MUST require an explicit action limited to named
   change items and MUST expire when the review session ends.
 - **FR-026**: The system MUST preserve a trace of proposal revisions, review comments, approval and

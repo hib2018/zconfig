@@ -134,6 +134,7 @@ pub const RevisionValidationPayload = struct {
 };
 pub const FinalAssemblyPayload = struct {
     source_path: []const u8,
+    schema_path: ?[]const u8 = null,
     source_digest: []const u8,
     proposal: Proposal,
     decisions: std.json.Value,
@@ -147,6 +148,7 @@ pub const FinalComment = struct {
 };
 pub const ApplyPayload = struct {
     source_path: []const u8,
+    schema_path: ?[]const u8 = null,
     source_digest: []const u8,
     final_change_digest: []const u8,
     confirmation_nonce: []const u8,
