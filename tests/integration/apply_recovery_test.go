@@ -129,6 +129,39 @@ func TestSubsetApprovalResumeStaleSourceAndRecovery(t *testing.T) {
 	}
 }
 
+func TestFinalCandidateSchemaIsRevalidatedBeforePreviewAndApply(t *testing.T) {
+	core := buildCore(t)
+	root := t.TempDir()
+	source := []byte("{\"count\":1}\n")
+	if err := os.WriteFile(filepath.Join(root, "config.json"), source, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	proposal := map[string]any{
+		"proposal_id": "schema-final", "revision": 1, "source_digest": shaDigest(source), "created_at": "2026-09-20T00:00:00Z",
+		"items": []map[string]any{{"change_id": "count", "path": "/count", "operation": "replace", "expected_old": 1, "proposed_value": 10, "explanation": "count"}},
+	}
+	payload := map[string]any{"source_path": "config.json", "schema_path": "schema.json", "source_digest": shaDigest(source), "proposal": proposal, "decisions": map[string]string{"count": "approved"}, "comments": []any{}, "external_checks": []any{}}
+	if err := os.WriteFile(filepath.Join(root, "schema.json"), []byte(`{"type":"object","properties":{"count":{"type":"integer","maximum":5}}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if response := callCore(t, core, root, "assemble_final", "zconfig.final-change/1", payload); response.OK {
+		t.Fatal("schema-invalid complete candidate reached preview")
+	}
+	if err := os.WriteFile(filepath.Join(root, "schema.json"), []byte(`{"type":"object","properties":{"count":{"type":"integer","maximum":10}}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	preview := assemble(t, core, root, payload)
+	if err := os.WriteFile(filepath.Join(root, "schema.json"), []byte(`{"type":"object","properties":{"count":{"type":"integer","maximum":5}}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if response := apply(t, core, root, payload, preview); response.OK {
+		t.Fatal("candidate was not revalidated after schema changed")
+	}
+	if got, err := os.ReadFile(filepath.Join(root, "config.json")); err != nil || !bytes.Equal(got, source) {
+		t.Fatalf("schema rejection changed source: %q %v", got, err)
+	}
+}
+
 func buildCore(t *testing.T) string {
 	t.Helper()
 	prefix := t.TempDir()

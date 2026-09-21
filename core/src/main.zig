@@ -41,6 +41,13 @@ fn nowMs(io: std.Io) i64 {
     return @intCast(@divFloor(std.Io.Clock.real.now(io).nanoseconds, std.time.ns_per_ms));
 }
 
+const SchemaCheck = struct {
+    kind: []const u8,
+    status: []const u8,
+    code: []const u8,
+    message: []const u8,
+};
+
 fn writeFinalAssembly(allocator: std.mem.Allocator, io: std.Io, request: core.protocol.Request, writer: *std.Io.Writer) !void {
     var payload = try std.json.parseFromValue(core.protocol.FinalAssemblyPayload, allocator, request.payload, .{});
     defer payload.deinit();
@@ -54,15 +61,24 @@ fn writeFinalAssembly(allocator: std.mem.Allocator, io: std.Io, request: core.pr
         null;
     defer if (loaded_schema) |*value| value.deinit(allocator);
     const schema_root: ?std.json.Value = if (loaded_schema) |*value| value.document.parsed.value else null;
+    const schema_result: ?core.schema.Result = if (schema_root) |root| try core.final_set.validateCandidateSchema(allocator, assembled.candidate, root) else null;
+    if (schema_result) |result| if (result.status == .failed) return error.SchemaValidationFailed;
+    const schema_checks: []const SchemaCheck = if (schema_result) |result| &.{.{
+        .kind = "schema",
+        .status = @tagName(result.status),
+        .code = result.code,
+        .message = if (result.status == .unverified) "Candidate contains an unsupported schema keyword." else "Complete candidate satisfies the configured schema.",
+    }} else &.{};
     const diff = try core.final_set.renderDiff(allocator, loaded.bytes, assembled.candidate, payload.value.proposal, assembled.approved_ids, schema_root);
     defer allocator.free(diff);
-    const nonce = try core.final_set.issueCapability(allocator, io, payload.value.source_digest, &assembled.final_digest, nowMs(io));
+    const context_digest = try core.final_set.confirmationContextDigest(allocator, payload.value, &assembled.final_digest);
+    const nonce = try core.final_set.issueCapability(allocator, io, payload.value.source_digest, &assembled.final_digest, &context_digest, nowMs(io));
     try std.json.Stringify.value(.{
         .protocol_version = core.protocol_version,
         .request_id = request.request_id,
         .ok = true,
         .result_schema = "zconfig.final-change/1",
-        .result = .{ .final_change_digest = &assembled.final_digest, .source_digest = payload.value.source_digest, .approved_change_item_ids = assembled.approved_ids, .diff = diff, .checks = &.{}, .confirmation_nonce = &nonce },
+        .result = .{ .final_change_digest = &assembled.final_digest, .source_digest = payload.value.source_digest, .approved_change_item_ids = assembled.approved_ids, .diff = diff, .checks = schema_checks, .confirmation_nonce = &nonce },
     }, .{}, writer);
 }
 
@@ -74,8 +90,15 @@ fn writeFinalApply(allocator: std.mem.Allocator, io: std.Io, request: core.proto
     const assembly_payload = core.protocol.FinalAssemblyPayload{ .source_path = payload.value.source_path, .schema_path = payload.value.schema_path, .source_digest = payload.value.source_digest, .proposal = payload.value.proposal, .decisions = payload.value.decisions, .comments = payload.value.comments, .external_checks = payload.value.external_checks };
     var assembled = try core.final_set.assemble(allocator, loaded.bytes, assembly_payload);
     defer assembled.deinit();
+    if (payload.value.schema_path) |path| {
+        var loaded_schema = try core.document.load(allocator, io, path);
+        defer loaded_schema.deinit(allocator);
+        const schema_result = try core.final_set.validateCandidateSchema(allocator, assembled.candidate, loaded_schema.document.parsed.value);
+        if (schema_result.status == .failed) return error.SchemaValidationFailed;
+    }
     if (!std.mem.eql(u8, &assembled.final_digest, payload.value.final_change_digest)) return error.FinalDigestMismatch;
-    try core.final_set.consumeCapability(allocator, io, payload.value.confirmation_nonce, payload.value.source_digest, payload.value.final_change_digest, nowMs(io));
+    const context_digest = try core.final_set.confirmationContextDigest(allocator, assembly_payload, &assembled.final_digest);
+    try core.final_set.consumeCapability(allocator, io, payload.value.confirmation_nonce, payload.value.source_digest, payload.value.final_change_digest, &context_digest, nowMs(io));
     const result = try core.apply.replaceCandidateInDir(allocator, io, std.Io.Dir.cwd(), payload.value.source_path, payload.value.source_digest, assembled.candidate);
     const recovery_path = try std.fmt.allocPrint(allocator, "{s}.zconfig-recovery", .{payload.value.source_path});
     try std.json.Stringify.value(.{

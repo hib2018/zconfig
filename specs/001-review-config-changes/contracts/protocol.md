@@ -108,9 +108,11 @@ The validator contract is a single raw JSON request and response on stdin/stdout
 agent protocol-envelope operation. Registration's `protocol_major` is its preflight contract
 negotiation; v1 runners strictly validate both document shapes and the returned candidate digest.
 
-The core emits a short-lived confirmation nonce only with the final preview. It stores a value-free,
-0600 capability record under `.zconfig/runtime/` containing only the nonce, issue/expiry time, source
-digest, and final-change digest. `apply_final` resends the proposal, decisions, comment states, and
+The core emits a short-lived confirmation nonce only with the final preview. The CLI displays it as
+the confirmation token, and a later invocation must return that exact token; a boolean confirmation
+flag is not accepted. It stores a value-free, 0600 capability record under `.zconfig/runtime/`
+containing only the nonce, issue/expiry time, source digest, final-change digest, and a digest of the
+complete confirmation context. `apply_final` resends the proposal, decisions, comment states, and
 external-check results; the core recomputes the final set and requires an exact digest match before
 consuming the capability. Any changed source, proposal, decision, comment, check, expiry, process
 restart cleanup, or session resume invalidates it. The nonce is accepted once only.

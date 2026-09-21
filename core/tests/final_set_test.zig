@@ -77,6 +77,18 @@ test "final diff preserves normal bytes and redacts schema and name sensitive va
     try std.testing.expectEqual(@as(usize, 4), std.mem.count(u8, diff, "[REDACTED]"));
 }
 
+test "complete candidate is validated against schema" {
+    const allocator = std.testing.allocator;
+    var parsed_schema = try std.json.parseFromSlice(std.json.Value, allocator,
+        \\{"type":"object","properties":{"a":{"type":"integer","maximum":5}}}
+    , .{});
+    defer parsed_schema.deinit();
+    const failed = try final_set.validateCandidateSchema(allocator, "{\"a\":10}", parsed_schema.value);
+    try std.testing.expectEqualStrings("failed", @tagName(failed.status));
+    const passed = try final_set.validateCandidateSchema(allocator, "{\"a\":5}", parsed_schema.value);
+    try std.testing.expectEqualStrings("passed", @tagName(passed.status));
+}
+
 test "pending decisions unresolved comments and failed checks block assembly" {
     const pending = try payload(std.testing.allocator, "pending", "rejected", &.{}, &.{});
     defer freePayload(std.testing.allocator, pending);
@@ -113,10 +125,11 @@ test "pending decisions unresolved comments and failed checks block assembly" {
     try std.testing.expectError(error.CheckDigestMismatch, final_set.assemble(std.testing.allocator, source, mismatched.value));
 }
 
-test "capability is digest bound expiring and one use" {
-    var capability = final_set.Capability{ .nonce = "0123456789abcdef0123456789abcdef", .source_digest = "source", .final_change_digest = "final", .issued_at_ms = 100, .expires_at_ms = 200 };
-    try std.testing.expectError(error.ConfirmationDigestMismatch, capability.authorize(150, capability.nonce, "source", "other"));
-    try std.testing.expectError(error.ConfirmationExpired, capability.authorize(201, capability.nonce, "source", "final"));
-    try capability.authorize(150, capability.nonce, "source", "final");
-    try std.testing.expectError(error.ConfirmationConsumed, capability.authorize(150, capability.nonce, "source", "final"));
+test "capability is state bound expiring and one use" {
+    var capability = final_set.Capability{ .nonce = "0123456789abcdef0123456789abcdef", .source_digest = "source", .final_change_digest = "final", .context_digest = "context", .issued_at_ms = 100, .expires_at_ms = 200 };
+    try std.testing.expectError(error.ConfirmationDigestMismatch, capability.authorize(150, capability.nonce, "source", "other", "context"));
+    try std.testing.expectError(error.ConfirmationDigestMismatch, capability.authorize(150, capability.nonce, "source", "final", "other"));
+    try std.testing.expectError(error.ConfirmationExpired, capability.authorize(201, capability.nonce, "source", "final", "context"));
+    try capability.authorize(150, capability.nonce, "source", "final", "context");
+    try std.testing.expectError(error.ConfirmationConsumed, capability.authorize(150, capability.nonce, "source", "final", "context"));
 }

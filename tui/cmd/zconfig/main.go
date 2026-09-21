@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -17,6 +19,7 @@ import (
 	"github.com/hib2018/zconfig/tui/internal/protocol"
 	"github.com/hib2018/zconfig/tui/internal/review"
 	"github.com/hib2018/zconfig/tui/internal/runner"
+	"github.com/hib2018/zconfig/tui/internal/session"
 	"github.com/hib2018/zconfig/tui/internal/ui"
 )
 
@@ -82,7 +85,7 @@ func run(args []string) error {
 }
 
 var (
-	errConfirmationRequired = errors.New("final confirmation required; inspect the diff and repeat with --confirm")
+	errConfirmationRequired = errors.New("final confirmation required; inspect the diff and repeat with --confirm-token and the displayed token")
 	errValidationBlocked    = errors.New("validation blocked application")
 )
 
@@ -110,8 +113,8 @@ func (v *stringList) Set(value string) error {
 
 type applyOptions struct {
 	proposal, source, schema, corePath, configPath string
+	project, sessionID, confirmToken               string
 	approved, rejected, validators                 []string
-	confirm                                        bool
 }
 
 func runApply(args []string) error {
@@ -129,7 +132,9 @@ func parseApplyArgs(args []string) (applyOptions, error) {
 	schema := fs.String("schema", "", "optional JSON Schema")
 	corePath := fs.String("core", "", "path to zconfig-core")
 	configPath := fs.String("config", "", "command registration file")
-	confirm := fs.Bool("confirm", false, "apply the displayed final change set")
+	project := fs.String("project", "", "project directory containing review and audit state")
+	sessionID := fs.String("session", "", "review session ID")
+	confirmToken := fs.String("confirm-token", "", "token emitted by a previous final preview")
 	fs.Var(&approved, "approve", "approved change ID (repeatable)")
 	fs.Var(&rejected, "reject", "rejected change ID (repeatable)")
 	fs.Var(&validators, "validator", "registered validator name (repeatable)")
@@ -144,13 +149,19 @@ func parseApplyArgs(args []string) (applyOptions, error) {
 		proposalPath = fs.Arg(0)
 	}
 	if proposalPath == "" || *source == "" || fs.NArg() > 1 {
-		return applyOptions{}, errors.New("usage: zconfig apply <proposal> --source <file> (--approve <id>|--reject <id>)... [--validator <name>] [--confirm]")
+		return applyOptions{}, errors.New("usage: zconfig apply <proposal> --source <file> --session <id> (--approve <id>|--reject <id>)... [--validator <name>] [--confirm-token <token>]")
 	}
-	return applyOptions{proposal: proposalPath, source: *source, schema: *schema, corePath: *corePath, configPath: *configPath, approved: approved, rejected: rejected, validators: validators, confirm: *confirm}, nil
+	if *sessionID == "" {
+		return applyOptions{}, errors.New("apply requires --session so decisions, comments, and audit events share one review identity")
+	}
+	return applyOptions{proposal: proposalPath, source: *source, schema: *schema, corePath: *corePath, configPath: *configPath, project: *project, sessionID: *sessionID, confirmToken: *confirmToken, approved: approved, rejected: rejected, validators: validators}, nil
 }
 
 func executeApply(options applyOptions) error {
 	ctx := context.Background()
+	if err := canonicalizeApplyPaths(&options); err != nil {
+		return err
+	}
 	if options.corePath == "" {
 		options.corePath = findCore()
 	}
@@ -172,10 +183,6 @@ func executeApply(options applyOptions) error {
 	if err := json.Unmarshal(proposalBytes, &proposal); err != nil {
 		return err
 	}
-	decisions, err := decisionSet(proposal, options.approved, options.rejected)
-	if err != nil {
-		return err
-	}
 	inspection, err := inspect(ctx, coreCommand, options.source, options.schema)
 	if err != nil {
 		return err
@@ -183,25 +190,48 @@ func executeApply(options applyOptions) error {
 	if proposal.SourceDigest != inspection.SourceDigest {
 		return errors.New("proposal source digest does not match the inspected source")
 	}
+	audit, err := session.OpenAudit(options.project, options.sessionID)
+	if err != nil {
+		return fmt.Errorf("open audit: %w", err)
+	}
+	stored, created, err := loadOrCreateApplySession(options, proposal, inspection)
+	if err != nil {
+		return err
+	}
+	decisions, comments, err := sessionApplyState(stored, proposal, options.source, options.approved, options.rejected)
+	if err != nil {
+		return err
+	}
+	proposalDigest := digestBytes(proposalBytes)
+	if created {
+		for _, item := range proposal.Items {
+			action := "item.rejected"
+			if decisions[item.ChangeID] == "approved" {
+				action = "item.approved"
+			}
+			if err := appendAudit(audit, action, []string{item.ChangeID}, nil, inspection.SourceDigest, proposalDigest, ""); err != nil {
+				return err
+			}
+		}
+		if err := session.Save(options.project, stored); err != nil {
+			return fmt.Errorf("save review session: %w", err)
+		}
+	}
 
 	checks := []protocol.ValidationResult{}
 	if len(options.validators) != 0 {
-		candidatePath, candidateDigest, cleanup, err := prepareValidatorCandidate(ctx, coreCommand, options, proposalBytes, decisions, inspection.SourceDigest)
+		candidatePath, candidateDigest, cleanup, err := prepareValidatorCandidate(ctx, coreCommand, options, proposalBytes, decisions, comments, inspection.SourceDigest)
 		if err != nil {
 			return err
 		}
 		defer cleanup()
-		project, err := os.Getwd()
-		if err != nil {
-			return err
-		}
 		if options.configPath == "" {
 			options.configPath, err = config.DefaultPath()
 			if err != nil {
 				return err
 			}
 		}
-		cfg, err := config.Load(options.configPath, project)
+		cfg, err := config.Load(options.configPath, options.project)
 		if err != nil {
 			return err
 		}
@@ -219,15 +249,25 @@ func executeApply(options applyOptions) error {
 		}
 	}
 
-	assembly, err := assembleFinal(ctx, coreCommand, options.source, options.schema, inspection.SourceDigest, proposalBytes, decisions, checks)
+	assembly, err := assembleFinal(ctx, coreCommand, options.source, options.schema, inspection.SourceDigest, proposalBytes, decisions, comments, checks)
 	if err != nil {
 		return err
 	}
 	fmt.Fprintln(os.Stdout, assembly.Diff)
-	if !options.confirm {
+	if options.confirmToken == "" {
+		if err := appendAudit(audit, "final.previewed", assembly.ApprovedIDs, nil, inspection.SourceDigest, proposalDigest, ""); err != nil {
+			return err
+		}
+		fmt.Fprintf(os.Stdout, "session: %s\nconfirmation token: %s\n", options.sessionID, assembly.ConfirmationNonce)
 		return errConfirmationRequired
 	}
-	applyPayload := protocol.ApplyFinal{SourcePath: options.source, SchemaPath: options.schema, SourceDigest: inspection.SourceDigest, FinalChangeDigest: assembly.FinalChangeDigest, ConfirmationNonce: assembly.ConfirmationNonce, Proposal: proposalBytes, Decisions: decisions, Comments: []protocol.FinalComment{}, ExternalChecks: checks}
+	if err := appendAudit(audit, "final.confirmed", assembly.ApprovedIDs, nil, inspection.SourceDigest, proposalDigest, "confirmation.accepted"); err != nil {
+		return err
+	}
+	if err := appendAudit(audit, "apply.started", assembly.ApprovedIDs, nil, inspection.SourceDigest, proposalDigest, "apply.started"); err != nil {
+		return err
+	}
+	applyPayload := protocol.ApplyFinal{SourcePath: options.source, SchemaPath: options.schema, SourceDigest: inspection.SourceDigest, FinalChangeDigest: assembly.FinalChangeDigest, ConfirmationNonce: options.confirmToken, Proposal: proposalBytes, Decisions: decisions, Comments: comments, ExternalChecks: checks}
 	payload, err := json.Marshal(applyPayload)
 	if err != nil {
 		return err
@@ -237,11 +277,19 @@ func executeApply(options applyOptions) error {
 		return err
 	}
 	if !response.OK {
+		_ = appendAudit(audit, "apply.failed", assembly.ApprovedIDs, nil, inspection.SourceDigest, proposalDigest, "apply.rejected")
 		return fmt.Errorf("apply rejected: %s", response.Error.Code)
 	}
 	var result protocol.ApplyResult
 	if err := protocol.DecodePayload(response.Result, &result); err != nil {
+		_ = restoreFromRecovery(options.source, options.source+".zconfig-recovery")
 		return err
+	}
+	if err := appendAudit(audit, "apply.succeeded", assembly.ApprovedIDs, nil, result.SourceDigestAfter, proposalDigest, "apply.succeeded"); err != nil {
+		if restoreErr := restoreFromRecovery(options.source, result.Recovery.Path); restoreErr != nil {
+			return fmt.Errorf("success audit failed and recovery failed: %v; %w", restoreErr, err)
+		}
+		return fmt.Errorf("success audit failed; source restored: %w", err)
 	}
 	fmt.Fprintf(os.Stdout, "applied %s; recovery: %s\n", result.SourceDigestAfter, result.Recovery.Path)
 	return nil
@@ -289,11 +337,187 @@ func decisionSet(proposal review.Proposal, approved, rejected []string) (map[str
 	return decisions, nil
 }
 
-func assembleFinal(ctx context.Context, command runner.Command, source, schema, digest string, proposal json.RawMessage, decisions map[string]string, checks []protocol.ValidationResult) (protocol.FinalAssemblyResult, error) {
+func canonicalizeApplyPaths(options *applyOptions) error {
+	project, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	if options.project != "" {
+		project = options.project
+	}
+	options.project, err = filepath.Abs(project)
+	if err != nil {
+		return err
+	}
+	for label, target := range map[string]*string{
+		"proposal": &options.proposal,
+		"source":   &options.source,
+		"schema":   &options.schema,
+		"config":   &options.configPath,
+	} {
+		if *target == "" {
+			continue
+		}
+		*target, err = filepath.Abs(*target)
+		if err != nil {
+			return fmt.Errorf("resolve %s path: %w", label, err)
+		}
+	}
+	return nil
+}
+
+func loadOrCreateApplySession(options applyOptions, proposal review.Proposal, inspection protocol.InspectionResult) (review.Session, bool, error) {
+	stored, err := session.Load(options.project, options.sessionID)
+	if err == nil {
+		return stored, false, nil
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		return review.Session{}, false, fmt.Errorf("load review session: %w", err)
+	}
+	if options.confirmToken != "" {
+		return review.Session{}, false, errors.New("confirmation requires the review session created by the preview")
+	}
+	decisions, err := decisionSet(proposal, options.approved, options.rejected)
+	if err != nil {
+		return review.Session{}, false, err
+	}
+	persisted := proposal
+	persisted.Items = append([]review.ChangeItem(nil), proposal.Items...)
+	applyInspection(&persisted, inspection)
+	for i := range persisted.Items {
+		persisted.Items[i].Decision = review.Decision(decisions[persisted.Items[i].ChangeID])
+		if persisted.Items[i].Sensitivity != review.SensitivityNormal {
+			persisted.Items[i].ExpectedOld = nil
+			persisted.Items[i].ProposedValue = nil
+		}
+	}
+	now := time.Now().UTC()
+	return review.Session{
+		SessionSchema: session.SessionSchema,
+		ReviewID:      options.sessionID,
+		Source: review.Source{
+			Path:       options.source,
+			Digest:     inspection.SourceDigest,
+			ByteLength: inspection.ByteLength,
+			NodeCount:  inspection.NodeCount,
+			RootType:   "object",
+		},
+		ActiveProposal: persisted,
+		Comments:       []review.Comment{},
+		Lifecycle:      review.LifecycleReady,
+		UpdatedAt:      now,
+	}, true, nil
+}
+
+func sessionApplyState(stored review.Session, proposal review.Proposal, source string, approved, rejected []string) (map[string]string, []protocol.FinalComment, error) {
+	if stored.Source.Path != source || stored.Source.Digest != proposal.SourceDigest || stored.ActiveProposal.ProposalID != proposal.ProposalID || stored.ActiveProposal.Revision != proposal.Revision || len(stored.ActiveProposal.Items) != len(proposal.Items) {
+		return nil, nil, errors.New("review session does not match the active proposal")
+	}
+	decisions := make(map[string]string, len(proposal.Items))
+	for i, item := range proposal.Items {
+		storedItem := stored.ActiveProposal.Items[i]
+		if storedItem.ChangeID != item.ChangeID || storedItem.Path != item.Path || storedItem.Operation != item.Operation {
+			return nil, nil, errors.New("review session proposal identity changed")
+		}
+		if storedItem.Decision != review.DecisionApproved && storedItem.Decision != review.DecisionRejected {
+			return nil, nil, fmt.Errorf("review session has no final decision for %q", item.ChangeID)
+		}
+		decisions[item.ChangeID] = string(storedItem.Decision)
+	}
+	if len(approved)+len(rejected) != 0 {
+		requested, err := decisionSet(proposal, approved, rejected)
+		if err != nil {
+			return nil, nil, err
+		}
+		for id, decision := range requested {
+			if decisions[id] != decision {
+				return nil, nil, fmt.Errorf("command decision for %q differs from the review session", id)
+			}
+		}
+	}
+	comments := make([]protocol.FinalComment, 0, len(stored.Comments))
+	for _, comment := range stored.Comments {
+		comments = append(comments, protocol.FinalComment{CommentID: comment.CommentID, ChangeID: comment.ChangeID, Status: string(comment.Status)})
+	}
+	return decisions, comments, nil
+}
+
+func restoreFromRecovery(source, recovery string) error {
+	prior, err := os.ReadFile(recovery)
+	if err != nil {
+		return err
+	}
+	info, err := os.Stat(source)
+	if err != nil {
+		return err
+	}
+	temporary, err := os.CreateTemp(filepath.Dir(source), ".zconfig-audit-rollback-*.tmp")
+	if err != nil {
+		return err
+	}
+	name := temporary.Name()
+	ok := false
+	defer func() {
+		_ = temporary.Close()
+		if !ok {
+			_ = os.Remove(name)
+		}
+	}()
+	if err := temporary.Chmod(info.Mode().Perm()); err != nil {
+		return err
+	}
+	if _, err := temporary.Write(prior); err != nil {
+		return err
+	}
+	if err := temporary.Sync(); err != nil {
+		return err
+	}
+	if err := temporary.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(name, source); err != nil {
+		return err
+	}
+	directory, err := os.Open(filepath.Dir(source))
+	if err != nil {
+		return err
+	}
+	defer directory.Close()
+	if err := directory.Sync(); err != nil {
+		return err
+	}
+	ok = true
+	return nil
+}
+
+func digestBytes(value []byte) string {
+	sum := sha256.Sum256(value)
+	return "sha256:" + hex.EncodeToString(sum[:])
+}
+
+func appendAudit(audit *session.Audit, action string, changeIDs, commentIDs []string, sourceDigest, proposalDigest, outcome string) error {
+	event := session.AuditEvent{
+		EventID:        requestID("event"),
+		OccurredAt:     time.Now().UTC(),
+		ActorType:      "human",
+		Action:         action,
+		ChangeIDs:      append([]string(nil), changeIDs...),
+		CommentIDs:     append([]string(nil), commentIDs...),
+		SourceDigest:   sourceDigest,
+		ProposalDigest: proposalDigest,
+		OutcomeCode:    outcome,
+	}
+	if err := audit.Append(event); err != nil {
+		return fmt.Errorf("audit %s: %w", action, err)
+	}
+	return nil
+}
+
+func assembleFinal(ctx context.Context, command runner.Command, source, schema, digest string, proposal json.RawMessage, decisions map[string]string, comments []protocol.FinalComment, checks []protocol.ValidationResult) (protocol.FinalAssemblyResult, error) {
 	if checks == nil {
 		checks = []protocol.ValidationResult{}
 	}
-	payload, err := json.Marshal(protocol.FinalAssembly{SourcePath: source, SchemaPath: schema, SourceDigest: digest, Proposal: proposal, Decisions: decisions, Comments: []protocol.FinalComment{}, ExternalChecks: checks})
+	payload, err := json.Marshal(protocol.FinalAssembly{SourcePath: source, SchemaPath: schema, SourceDigest: digest, Proposal: proposal, Decisions: decisions, Comments: comments, ExternalChecks: checks})
 	if err != nil {
 		return protocol.FinalAssemblyResult{}, err
 	}
@@ -311,7 +535,7 @@ func assembleFinal(ctx context.Context, command runner.Command, source, schema, 
 	return result, nil
 }
 
-func prepareValidatorCandidate(ctx context.Context, command runner.Command, options applyOptions, proposal json.RawMessage, decisions map[string]string, sourceDigest string) (string, string, func(), error) {
+func prepareValidatorCandidate(ctx context.Context, command runner.Command, options applyOptions, proposal json.RawMessage, decisions map[string]string, comments []protocol.FinalComment, sourceDigest string) (string, string, func(), error) {
 	source, err := os.ReadFile(options.source)
 	if err != nil {
 		return "", "", func() {}, err
@@ -342,12 +566,12 @@ func prepareValidatorCandidate(ctx context.Context, command runner.Command, opti
 		cleanup()
 		return "", "", func() {}, err
 	}
-	assembly, err := assembleFinal(ctx, command, path, options.schema, sourceDigest, proposal, decisions, nil)
+	assembly, err := assembleFinal(ctx, command, path, options.schema, sourceDigest, proposal, decisions, comments, nil)
 	if err != nil {
 		cleanup()
 		return "", "", func() {}, err
 	}
-	payload := protocol.ApplyFinal{SourcePath: path, SchemaPath: options.schema, SourceDigest: sourceDigest, FinalChangeDigest: assembly.FinalChangeDigest, ConfirmationNonce: assembly.ConfirmationNonce, Proposal: proposal, Decisions: decisions, Comments: []protocol.FinalComment{}, ExternalChecks: []protocol.ValidationResult{}}
+	payload := protocol.ApplyFinal{SourcePath: path, SchemaPath: options.schema, SourceDigest: sourceDigest, FinalChangeDigest: assembly.FinalChangeDigest, ConfirmationNonce: assembly.ConfirmationNonce, Proposal: proposal, Decisions: decisions, Comments: comments, ExternalChecks: []protocol.ValidationResult{}}
 	encoded, err := json.Marshal(payload)
 	if err != nil {
 		cleanup()

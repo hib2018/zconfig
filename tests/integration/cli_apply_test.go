@@ -9,6 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/hib2018/zconfig/tui/internal/review"
+	"github.com/hib2018/zconfig/tui/internal/session"
 )
 
 func TestCLIValidatorPreviewConfirmationAndApply(t *testing.T) {
@@ -44,13 +48,16 @@ func TestCLIValidatorPreviewConfirmationAndApply(t *testing.T) {
 	}
 	configPath := filepath.Join(root, "commands.json")
 	configBytes, _ := json.Marshal(map[string]any{"validators": []map[string]any{
-		{"name": "fixture", "executable": validator, "args": []string{"--mode", "passed"}},
+		{"name": "fixture", "executable": validator, "args": []string{"--mode", "passed"}, "working_directory": filepath.Join(root, "validator-work")},
 		{"name": "blocking", "executable": validator, "args": []string{"--mode", "failed"}},
 	}})
+	if err := os.Mkdir(filepath.Join(root, "validator-work"), 0o700); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(configPath, configBytes, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	args := []string{"apply", proposalPath, "--source", sourcePath, "--core", core, "--config", configPath, "--approve", "theme", "--reject", "keep", "--validator", "fixture"}
+	args := []string{"apply", proposalPath, "--source", sourcePath, "--core", core, "--config", configPath, "--session", "cli-review", "--approve", "theme", "--reject", "keep", "--validator", "fixture"}
 	preview := exec.Command(cli, args...)
 	preview.Dir = root
 	output, err := preview.CombinedOutput()
@@ -60,6 +67,10 @@ func TestCLIValidatorPreviewConfirmationAndApply(t *testing.T) {
 	}
 	if !strings.Contains(string(output), `- "light"`) || !strings.Contains(string(output), `+ "dark"`) {
 		t.Fatalf("missing final diff: %s", output)
+	}
+	token := outputValue(string(output), "confirmation token: ")
+	if len(token) != 64 {
+		t.Fatalf("missing confirmation token: %s", output)
 	}
 	if current, _ := os.ReadFile(sourcePath); !bytes.Equal(current, source) {
 		t.Fatalf("preview mutated source: %q", current)
@@ -75,8 +86,48 @@ func TestCLIValidatorPreviewConfirmationAndApply(t *testing.T) {
 	if current, _ := os.ReadFile(sourcePath); !bytes.Equal(current, source) {
 		t.Fatalf("failed validator mutated source: %q", current)
 	}
+	stored, err := session.Load(root, "cli-review")
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	stored.Comments = append(stored.Comments, review.Comment{CommentID: "comment-theme", ChangeID: "theme", Body: "confirm this", Status: review.CommentOpen, CreatedAt: now, UpdatedAt: now})
+	if err := session.Save(root, stored); err != nil {
+		t.Fatal(err)
+	}
+	unresolved := exec.Command(cli, append(args, "--confirm-token", token)...)
+	unresolved.Dir = root
+	if unresolvedOutput, unresolvedErr := unresolved.CombinedOutput(); unresolvedErr == nil || !strings.Contains(string(unresolvedOutput), "final assembly rejected") {
+		t.Fatalf("unresolved comment accepted: %v: %s", unresolvedErr, unresolvedOutput)
+	}
+	stored.Comments[0].Status = review.CommentHumanConfirmed
+	stored.Comments[0].UpdatedAt = time.Now().UTC()
+	if err := session.Save(root, stored); err != nil {
+		t.Fatal(err)
+	}
+	changedState := exec.Command(cli, append(args, "--confirm-token", token)...)
+	changedState.Dir = root
+	if changedOutput, changedErr := changedState.CombinedOutput(); changedErr == nil || !strings.Contains(string(changedOutput), "apply rejected") {
+		t.Fatalf("token survived comment-state change: %v: %s", changedErr, changedOutput)
+	}
+	refreshed := exec.Command(cli, args...)
+	refreshed.Dir = root
+	refreshedOutput, refreshedErr := refreshed.CombinedOutput()
+	if !errors.As(refreshedErr, &exitErr) || exitErr.ExitCode() != 2 {
+		t.Fatalf("refreshed preview exit=%v output=%s", refreshedErr, refreshedOutput)
+	}
+	token = outputValue(string(refreshedOutput), "confirmation token: ")
 
-	confirmed := exec.Command(cli, append(args, "--confirm")...)
+	direct := exec.Command(cli, append(args, "--confirm-token", strings.Repeat("0", 64))...)
+	direct.Dir = root
+	if directOutput, directErr := direct.CombinedOutput(); directErr == nil || !strings.Contains(string(directOutput), "apply rejected") {
+		t.Fatalf("fabricated confirmation accepted: %v: %s", directErr, directOutput)
+	}
+	if current, _ := os.ReadFile(sourcePath); !bytes.Equal(current, source) {
+		t.Fatalf("fabricated confirmation mutated source: %q", current)
+	}
+
+	confirmed := exec.Command(cli, append(args, "--confirm-token", token)...)
 	confirmed.Dir = root
 	output, err = confirmed.CombinedOutput()
 	if err != nil {
@@ -89,4 +140,18 @@ func TestCLIValidatorPreviewConfirmationAndApply(t *testing.T) {
 	if err != nil || len(matches) != 0 {
 		t.Fatalf("candidate files were not removed: %v %v", matches, err)
 	}
+	auditPath := filepath.Join(root, ".zconfig", "audit", "cli-review.jsonl")
+	audit, err := os.ReadFile(auditPath)
+	if err != nil || !strings.Contains(string(audit), `"action":"final.confirmed"`) || !strings.Contains(string(audit), `"action":"apply.succeeded"`) {
+		t.Fatalf("missing apply audit trail: %v: %s", err, audit)
+	}
+}
+
+func outputValue(output, prefix string) string {
+	for _, line := range strings.Split(output, "\n") {
+		if strings.HasPrefix(line, prefix) {
+			return strings.TrimSpace(strings.TrimPrefix(line, prefix))
+		}
+	}
+	return ""
 }

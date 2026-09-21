@@ -113,24 +113,29 @@ go build -o ./zig-out/bin/zconfig ./tui/cmd/zconfig
 ./zig-out/bin/zconfig apply ./app.proposal.json \
   --source ./app.json \
   --schema ./app.schema.json \
+  --session app-review \
   --approve change-theme \
   --reject change-legacy \
   --validator project-check \
   --config ./commands.json \
   --core ./zig-out/bin/zconfig-core
 
-# 表示した差分を確認後、同じ指定に明示確認を追加して反映
+# 表示された confirmation token を使い、同じセッションを明示確認して反映
 ./zig-out/bin/zconfig apply ./app.proposal.json \
   --source ./app.json \
+  --schema ./app.schema.json \
+  --session app-review \
   --approve change-theme \
   --reject change-legacy \
-  --confirm \
+  --validator project-check \
+  --config ./commands.json \
+  --confirm-token <表示されたトークン> \
   --core ./zig-out/bin/zconfig-core
 ```
 
 `--schema` は省略できます。色を使えない端末では `--monochrome` を追加してください。提案ファイルの形式と操作の考え方は [レビューワークフロー](docs/workflow.md) を参照してください。
 
-現時点の `review` コマンドは読み取り専用画面までです。反映は独立した `apply` コマンドで、すべての項目に `--approve` または `--reject` を一度だけ指定します。`--confirm` がない実行は最終差分を表示して終了コード2で無変更終了し、バリデーター失敗は終了コード3、その他のエラーは終了コード1です。
+現時点の `review` コマンドは読み取り専用画面までです。反映は独立した `apply` コマンドで、`--session` と、すべての項目に対する `--approve` または `--reject` を指定します。初回実行はレビューセッションを保存し、最終差分と5分間・一回限りの確認トークンを表示して終了コード2で無変更終了します。表示後の別実行で同じセッションと `--confirm-token` を渡した場合だけ反映します。バリデーター失敗は終了コード3、その他のエラーは終了コード1です。
 
 ## コマンド登録
 

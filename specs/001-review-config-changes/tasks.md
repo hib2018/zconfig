@@ -182,10 +182,18 @@ human-controlled exceptions.
 - [X] T064 [P] Add representative standard JSON, schema, proposal, duplicate-key, CRLF, Unicode, large-scale, and fixed 20-item usability fixtures with an answer key in `tests/fixtures/`
 - [X] T065 [P] Add protocol compatibility tests that run every golden document through both implementations in `tests/contract/compatibility_test.go`
 - [X] T066 [P] Add 10 MiB, 100,000-node, 1,000-change load and navigation benchmarks in `core/tests/performance.zig` and `tui/internal/ui/benchmark_test.go`
-- [ ] T067 Run and document native regular-file replacement behavior on Linux, macOS, and Windows in `specs/001-review-config-changes/platform-validation.md`
+- [-] T067 SKIPPED BY PROJECT DECISION: native replacement validation on Linux and Windows is not practical at the current project stage; macOS results remain documented in `specs/001-review-config-changes/platform-validation.md`
 - [X] T068 Add installation, agent registration, supported schema subset, key bindings, recovery, and security-limit documentation in `README.md` and `docs/security.md`
-- [ ] T069 Run all quickstart scenarios and usability tests with five first-time users, then record timing, comprehension, errors, ratings, assistance, and platform results in `validation-results.md`
-- [ ] T070 Re-run constitution gates, confirm all unsupported file types fail closed, and document any approved exceptions in `specs/001-review-config-changes/validation-results.md`
+- [-] T069 SKIPPED BY PROJECT DECISION: five-person first-time-user usability testing is not practical at the current project stage; automated coverage remains recorded in `validation-results.md`
+- [X] T070 Re-run constitution gates, confirm all unsupported file types fail closed, and document any approved exceptions in `specs/001-review-config-changes/validation-results.md`
+- [X] T071 Require a prior preview token instead of a boolean confirmation flag in `tui/cmd/zconfig/main.go`
+- [X] T072 Bind confirmation capabilities to proposal, decisions, comments, checks, source, and final candidate in `core/src/final_set.zig`
+- [X] T073 Revalidate the complete candidate against the configured schema during preview and immediately before apply in `core/src/main.zig`
+- [X] T074 Load or create an apply review session and pass its comment states and decisions through the final protocol in `tui/cmd/zconfig/main.go`
+- [X] T075 Gate final confirmation and application on value-free append-only audit events in `tui/cmd/zconfig/main.go`
+- [X] T076 Canonicalize external-validator candidate and input paths independently of validator working directory in `tui/cmd/zconfig/main.go`
+- [X] T077 Add regression coverage for fabricated/stale tokens, comment-state changes, final schema validation, audit output, and validator working directories in `core/tests/` and `tests/integration/`
+- [X] T078 Update operator and protocol documentation for session-bound two-step confirmation in `README.md`, `docs/workflow.md`, and `contracts/protocol.md`
 
 **Checkpoint**: The feature meets its cross-platform, performance, protocol, preservation, recovery,
 and security acceptance criteria.

@@ -20,19 +20,26 @@ pub const Assembly = struct {
     }
 };
 
+pub fn validateCandidateSchema(allocator: std.mem.Allocator, candidate: []const u8, schema_root: std.json.Value) !schema.Result {
+    var parsed = std.json.parseFromSlice(std.json.Value, allocator, candidate, .{}) catch return error.InvalidCandidate;
+    defer parsed.deinit();
+    return schema.validate(parsed.value, schema_root);
+}
+
 pub const Capability = struct {
     nonce: []const u8,
     source_digest: []const u8,
     final_change_digest: []const u8,
+    context_digest: []const u8,
     issued_at_ms: i64,
     expires_at_ms: i64,
     consumed: bool = false,
 
-    pub fn authorize(self: *Capability, now_ms: i64, nonce: []const u8, source_digest: []const u8, final_digest: []const u8) !void {
+    pub fn authorize(self: *Capability, now_ms: i64, nonce: []const u8, source_digest: []const u8, final_digest: []const u8, context_digest: []const u8) !void {
         if (self.consumed) return error.ConfirmationConsumed;
         if (now_ms < self.issued_at_ms or now_ms > self.expires_at_ms) return error.ConfirmationExpired;
         if (!std.mem.eql(u8, self.nonce, nonce)) return error.ConfirmationMismatch;
-        if (!std.mem.eql(u8, self.source_digest, source_digest) or !std.mem.eql(u8, self.final_change_digest, final_digest)) return error.ConfirmationDigestMismatch;
+        if (!std.mem.eql(u8, self.source_digest, source_digest) or !std.mem.eql(u8, self.final_change_digest, final_digest) or !std.mem.eql(u8, self.context_digest, context_digest)) return error.ConfirmationDigestMismatch;
         self.consumed = true;
     }
 };
@@ -41,11 +48,12 @@ const StoredCapability = struct {
     nonce: []const u8,
     source_digest: []const u8,
     final_change_digest: []const u8,
+    context_digest: []const u8,
     issued_at_ms: i64,
     expires_at_ms: i64,
 };
 
-pub fn issueCapability(allocator: std.mem.Allocator, io: std.Io, source_digest: []const u8, final_digest: []const u8, now_ms: i64) ![64]u8 {
+pub fn issueCapability(allocator: std.mem.Allocator, io: std.Io, source_digest: []const u8, final_digest: []const u8, context_digest: []const u8, now_ms: i64) ![64]u8 {
     var random: [32]u8 = undefined;
     io.random(&random);
     const nonce = std.fmt.bytesToHex(random, .lower);
@@ -53,7 +61,7 @@ pub fn issueCapability(allocator: std.mem.Allocator, io: std.Io, source_digest: 
     _ = try cwd.createDirPathStatus(io, ".zconfig/runtime", @enumFromInt(0o700));
     const path = try std.fmt.allocPrint(allocator, ".zconfig/runtime/{s}.json", .{nonce});
     defer allocator.free(path);
-    const data = try std.json.Stringify.valueAlloc(allocator, StoredCapability{ .nonce = &nonce, .source_digest = source_digest, .final_change_digest = final_digest, .issued_at_ms = now_ms, .expires_at_ms = now_ms + 5 * 60 * 1000 }, .{});
+    const data = try std.json.Stringify.valueAlloc(allocator, StoredCapability{ .nonce = &nonce, .source_digest = source_digest, .final_change_digest = final_digest, .context_digest = context_digest, .issued_at_ms = now_ms, .expires_at_ms = now_ms + 5 * 60 * 1000 }, .{});
     defer allocator.free(data);
     var file = try cwd.createFile(io, path, .{ .exclusive = true, .permissions = @enumFromInt(0o600) });
     defer file.close(io);
@@ -62,7 +70,7 @@ pub fn issueCapability(allocator: std.mem.Allocator, io: std.Io, source_digest: 
     return nonce;
 }
 
-pub fn consumeCapability(allocator: std.mem.Allocator, io: std.Io, nonce: []const u8, source_digest: []const u8, final_digest: []const u8, now_ms: i64) !void {
+pub fn consumeCapability(allocator: std.mem.Allocator, io: std.Io, nonce: []const u8, source_digest: []const u8, final_digest: []const u8, context_digest: []const u8, now_ms: i64) !void {
     if (nonce.len != 64) return error.ConfirmationMismatch;
     for (nonce) |c| if (!std.ascii.isHex(c) or std.ascii.isUpper(c)) return error.ConfirmationMismatch;
     const cwd = std.Io.Dir.cwd();
@@ -76,9 +84,15 @@ pub fn consumeCapability(allocator: std.mem.Allocator, io: std.Io, nonce: []cons
     defer allocator.free(bytes);
     var parsed = try protocol.parseStrict(StoredCapability, allocator, bytes);
     defer parsed.deinit();
-    var capability = Capability{ .nonce = parsed.value.nonce, .source_digest = parsed.value.source_digest, .final_change_digest = parsed.value.final_change_digest, .issued_at_ms = parsed.value.issued_at_ms, .expires_at_ms = parsed.value.expires_at_ms };
-    try capability.authorize(now_ms, nonce, source_digest, final_digest);
+    var capability = Capability{ .nonce = parsed.value.nonce, .source_digest = parsed.value.source_digest, .final_change_digest = parsed.value.final_change_digest, .context_digest = parsed.value.context_digest, .issued_at_ms = parsed.value.issued_at_ms, .expires_at_ms = parsed.value.expires_at_ms };
+    try capability.authorize(now_ms, nonce, source_digest, final_digest, context_digest);
     try cwd.deleteFile(io, path);
+}
+
+pub fn confirmationContextDigest(allocator: std.mem.Allocator, payload: protocol.FinalAssemblyPayload, final_digest: []const u8) ![71]u8 {
+    const encoded = try std.json.Stringify.valueAlloc(allocator, .{ .payload = payload, .final_change_digest = final_digest }, .{});
+    defer allocator.free(encoded);
+    return digest(encoded);
 }
 
 pub fn assemble(allocator: std.mem.Allocator, source: []const u8, payload: protocol.FinalAssemblyPayload) !Assembly {

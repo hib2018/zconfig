@@ -46,15 +46,21 @@ func TestParseReviewArgsSupportsDocumentedOrdering(t *testing.T) {
 }
 
 func TestParseApplyArgsAndExitCodes(t *testing.T) {
-	options, err := parseApplyArgs([]string{"proposal.json", "--source", "app.json", "--schema", "app.schema.json", "--approve", "a", "--reject", "b", "--validator", "check", "--confirm"})
+	options, err := parseApplyArgs([]string{"proposal.json", "--source", "app.json", "--schema", "app.schema.json", "--session", "review-1", "--approve", "a", "--reject", "b", "--validator", "check", "--confirm-token", "token"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if options.proposal != "proposal.json" || options.source != "app.json" || options.schema != "app.schema.json" || len(options.approved) != 1 || len(options.rejected) != 1 || len(options.validators) != 1 || !options.confirm {
+	if options.proposal != "proposal.json" || options.source != "app.json" || options.schema != "app.schema.json" || options.sessionID != "review-1" || options.confirmToken != "token" || len(options.approved) != 1 || len(options.rejected) != 1 || len(options.validators) != 1 {
 		t.Fatalf("options=%+v", options)
 	}
 	if exitCode(errConfirmationRequired) != 2 || exitCode(errValidationBlocked) != 3 || exitCode(errors.New("other")) != 1 {
 		t.Fatal("stable exit codes changed")
+	}
+}
+
+func TestApplyRequiresReviewSession(t *testing.T) {
+	if _, err := parseApplyArgs([]string{"proposal.json", "--source", "app.json", "--approve", "a"}); err == nil || !strings.Contains(err.Error(), "--session") {
+		t.Fatalf("missing session accepted: %v", err)
 	}
 }
 
