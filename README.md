@@ -4,6 +4,25 @@ zconfig は、開発終盤の細かな設定変更を、人間とエージェン
 
 エージェントが作った変更案を「変更項目」の一覧として表示し、人間は各項目の現在値・提案値・理由・検査結果を確認します。必要な項目には自然言語でコメントし、その項目だけをエージェントへ再提案させます。最終的な採否とファイルへの反映は、常に人間が明示的に決定します。
 
+Z Ecosystem 全体の共通方針・横断Skill・Artifact Flow は [`hib2018/zecosystem`](https://github.com/hib2018/zecosystem) が管理します。このリポジトリは zconfig 固有の configuration review Domain、proposal/revision/apply Protocol、Schema、security rule を所有します。
+
+## 前提条件
+
+- zconfig は Human-controlled Artifact Pipeline の終盤に置く設定変更レビュー境界です。曖昧な要求から変更案を作る汎用Plannerではありません。
+- 変更案の生成は外部Agentが担い、zconfig は構造、元ファイルとの対応、変更範囲、機密値、最終確認を検証します。
+- Core は反映前に source digest、proposal、判断、コメント、外部検査結果、confirmation capability を再検証します。
+- 人間による最終確認を省略した自動適用は対象外です。
+- zintent や ztasks との横断的な位置づけは zecosystem の Artifact Flow に従いますが、zconfig 固有ProtocolとSchemaはこのリポジトリが正本です。
+
+## Z Ecosystem における境界
+
+| 領域 | 所有者 |
+|---|---|
+| proposal / revision / final-change / apply Schema | このリポジトリ |
+| zconfig process protocol、external validator contract、security/redaction rule | このリポジトリ |
+| zconfig をArtifact Flow終盤へ接続する横断方針 | `zecosystem` |
+| Pi/Codex等のharness設定、agent登録のmachine-local値 | dotfiles または利用者環境 |
+
 > [!WARNING]
 > 現在は開発中です。コアの最終集合生成と安全な反映まで実装されていますが、公開 CLI から最終承認までを通す操作フローと実利用者による検証は未完了です。重要な設定ファイルへ直接適用する用途にはまだ使用しないでください。
 
