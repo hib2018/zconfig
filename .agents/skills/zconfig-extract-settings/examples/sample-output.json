@@ -1,0 +1,158 @@
+{
+  "schema": "zconfig.settings-extraction/1",
+  "target": {
+    "repository": "hib2018/zconfig",
+    "root": ".",
+    "inspected_at": null,
+    "proposal_contract": "zconfig.proposal/1"
+  },
+  "items": [
+    {
+      "id": "tests-fixtures-configs-app-ui-theme",
+      "category": "display",
+      "file": "tests/fixtures/configs/app.json",
+      "pointer": "/ui/theme",
+      "current_value": "light",
+      "visibility": "plain",
+      "type": "string",
+      "description": "画面テーマ",
+      "choices": ["light", "dark"],
+      "range": null,
+      "evidence": [
+        {
+          "kind": "config",
+          "file": "tests/fixtures/configs/app.json",
+          "pointer": "/ui/theme",
+          "detail": "current value is present in the JSON config"
+        },
+        {
+          "kind": "schema",
+          "file": "tests/fixtures/schemas/app.schema.json",
+          "pointer": "#/properties/ui/properties/theme",
+          "detail": "schema declares type string, enum [light, dark], and description"
+        }
+      ]
+    },
+    {
+      "id": "tests-fixtures-configs-app-ui-density",
+      "category": "display",
+      "file": "tests/fixtures/configs/app.json",
+      "pointer": "/ui/density",
+      "current_value": "comfortable",
+      "visibility": "plain",
+      "type": "string",
+      "description": null,
+      "choices": null,
+      "range": null,
+      "evidence": [
+        {
+          "kind": "config",
+          "file": "tests/fixtures/configs/app.json",
+          "pointer": "/ui/density",
+          "detail": "current value is present in the JSON config; no schema entry was found"
+        }
+      ]
+    },
+    {
+      "id": "tests-fixtures-configs-app-server-timeout-ms",
+      "category": "operation",
+      "file": "tests/fixtures/configs/app.json",
+      "pointer": "/server/timeout_ms",
+      "current_value": 5000,
+      "visibility": "plain",
+      "type": "integer",
+      "description": null,
+      "choices": null,
+      "range": {"minimum": 100, "maximum": 30000},
+      "evidence": [
+        {
+          "kind": "config",
+          "file": "tests/fixtures/configs/app.json",
+          "pointer": "/server/timeout_ms",
+          "detail": "current value is present in the JSON config"
+        },
+        {
+          "kind": "schema",
+          "file": "tests/fixtures/schemas/app.schema.json",
+          "pointer": "#/properties/server/properties/timeout_ms",
+          "detail": "schema declares type integer with minimum 100 and maximum 30000"
+        }
+      ]
+    },
+    {
+      "id": "tests-fixtures-configs-app-server-legacy",
+      "category": "operation",
+      "file": "tests/fixtures/configs/app.json",
+      "pointer": "/server/legacy",
+      "current_value": true,
+      "visibility": "plain",
+      "type": "boolean",
+      "description": null,
+      "choices": null,
+      "range": null,
+      "evidence": [
+        {
+          "kind": "config",
+          "file": "tests/fixtures/configs/app.json",
+          "pointer": "/server/legacy",
+          "detail": "current value is present in the JSON config; no schema entry was found"
+        }
+      ]
+    },
+    {
+      "id": "tests-fixtures-configs-app-auth-api-token",
+      "category": "environment",
+      "file": "tests/fixtures/configs/app.json",
+      "pointer": "/auth/api_token",
+      "visibility": "redacted",
+      "type": "string",
+      "description": null,
+      "choices": null,
+      "range": null,
+      "evidence": [
+        {
+          "kind": "config",
+          "file": "tests/fixtures/configs/app.json",
+          "pointer": "/auth/api_token",
+          "detail": "current value exists but is not emitted"
+        },
+        {
+          "kind": "schema",
+          "file": "tests/fixtures/schemas/app.schema.json",
+          "pointer": "#/properties/auth/properties/api_token",
+          "detail": "schema declares type string with x-zconfig-sensitive: true"
+        },
+        {
+          "kind": "redaction",
+          "file": "core/src/redact.zig",
+          "pointer": "/auth/api_token",
+          "detail": "final token normalizes to a sensitive api token name"
+        }
+      ]
+    },
+    {
+      "id": "tests-fixtures-configs-app-features",
+      "category": "behavior",
+      "file": "tests/fixtures/configs/app.json",
+      "pointer": "/features",
+      "current_value": ["search", "export"],
+      "visibility": "plain",
+      "type": "array",
+      "description": null,
+      "choices": null,
+      "range": null,
+      "evidence": [
+        {
+          "kind": "config",
+          "file": "tests/fixtures/configs/app.json",
+          "pointer": "/features",
+          "detail": "array of scalar feature names is present in the JSON config; no schema entry was found"
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "Sample includes only evidence-backed choices and ranges.",
+    "The api_token value is intentionally omitted."
+  ]
+}
