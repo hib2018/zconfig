@@ -81,7 +81,7 @@ func (m *ReviewModel) render() string {
 	height := max(6, m.State.Height)
 	items := m.State.VisibleItems()
 
-	header := fmt.Sprintf("zconfig review  items:%d/%d  mode:%s  filter:%s", len(items), len(m.State.Items), fallback(string(m.State.Mode), "list"), fallback(m.State.Filter, "-"))
+	header := fmt.Sprintf("ZCONFIG REVIEW  changes %d/%d  mode %s  filter %s", len(items), len(m.State.Items), fallback(string(m.State.Mode), "list"), fallback(m.State.Filter, "-"))
 	if m.State.EditingFilter {
 		header += "  editing-filter"
 	}
@@ -99,14 +99,14 @@ func (m *ReviewModel) render() string {
 	if width < 72 {
 		listH := max(4, bodyHeight/2)
 		detailH := max(4, bodyHeight-listH)
-		body = strings.Join(renderPane("Changes", m.renderList(items, listH-2), width, listH, true), "\n") + "\n" +
-			strings.Join(renderPane("Detail", m.renderDetail(items), width, detailH, false), "\n")
+		body = strings.Join(renderPane("Change List", m.renderList(items, listH-2), width, listH, true), "\n") + "\n" +
+			strings.Join(renderPane("Selected Change", m.renderDetail(items), width, detailH, false), "\n")
 	} else {
 		left := max(30, width*2/5)
 		right := width - left - 1
 		body = joinPanes(
-			renderPane("Changes", m.renderList(items, bodyHeight-2), left, bodyHeight, true),
-			renderPane("Detail", m.renderDetail(items), right, bodyHeight, false),
+			renderPane("Change List", m.renderList(items, bodyHeight-2), left, bodyHeight, true),
+			renderPane("Selected Change", m.renderDetail(items), right, bodyHeight, false),
 		)
 	}
 
@@ -126,19 +126,21 @@ func (m *ReviewModel) renderList(items []review.ChangeItem, page int) string {
 		page = 1
 	}
 	start := min(m.State.Offset, len(items)-1)
-	end := min(start+page, len(items))
+	itemRows := 2
+	visible := max(1, page/itemRows)
+	end := min(start+visible, len(items))
 	var lines []string
 	for i := start; i < end; i++ {
 		item := items[i]
 		marker := "  "
 		if i == m.State.Selected {
-			marker = "> "
+			marker = "› "
 		}
-		line := fmt.Sprintf("%s[%s] %-7s %s  %s → %s", marker, checkLabel(item), item.Operation, item.Path, displayValue(item.ExpectedOld, item.Sensitivity), displayValue(item.ProposedValue, item.Sensitivity))
+		title := fmt.Sprintf("%s%s  %s", marker, strings.ToUpper(string(item.Operation)), item.Path)
 		if i == m.State.Selected && !m.Monochrome {
-			line = invert(line)
+			title = invert(title)
 		}
-		lines = append(lines, line)
+		lines = append(lines, title, fmt.Sprintf("    %s → %s", displayValue(item.ExpectedOld, item.Sensitivity), displayValue(item.ProposedValue, item.Sensitivity)))
 	}
 	return strings.Join(lines, "\n")
 }
