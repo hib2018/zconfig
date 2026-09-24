@@ -55,7 +55,11 @@ func TestFilterAndCheckLabels(t *testing.T) {
 }
 
 func TestSensitiveValuesRedactedBeforeFirstRender(t *testing.T) {
-	out := NewReviewModel(fixtureState()).View().Content
+	view := NewReviewModel(fixtureState()).View()
+	if !view.AltScreen {
+		t.Fatal("review TUI should use alt screen")
+	}
+	out := view.Content
 	if strings.Contains(out, "hunter2") || strings.Contains(out, "new-secret") {
 		t.Fatalf("secret rendered: %s", out)
 	}
