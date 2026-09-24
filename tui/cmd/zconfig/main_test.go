@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -32,6 +34,28 @@ func TestReviewUsageRequiresSourceAndProposal(t *testing.T) {
 	err := runReview(nil)
 	if err == nil || !strings.Contains(err.Error(), "usage:") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestAutoReviewOptionsFindsRootFiles(t *testing.T) {
+	root := t.TempDir()
+	source := []byte(`{"ui":{"theme":"light"}}`)
+	if err := os.WriteFile(filepath.Join(root, "app.json"), source, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "app.schema.json"), []byte(`{"type":"object"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	proposal := `{"proposal_id":"p","revision":1,"source_digest":"` + digestBytes(source) + `","created_at":"2026-09-24T00:00:00Z","items":[{"change_id":"theme","path":"/ui/theme","operation":"replace","expected_old":"light","proposed_value":"dark","explanation":"change theme"}]}`
+	if err := os.WriteFile(filepath.Join(root, "proposal.json"), []byte(proposal), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	options, err := autoReviewOptions(root, "core")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if filepath.Base(options.proposal) != "proposal.json" || filepath.Base(options.source) != "app.json" || filepath.Base(options.schema) != "app.schema.json" || options.corePath != "core" {
+		t.Fatalf("options=%+v", options)
 	}
 }
 

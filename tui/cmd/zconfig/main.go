@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -44,12 +45,16 @@ func run(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if !*handshake {
-		return errors.New("foundation build supports --handshake only")
-	}
 	project, err := os.Getwd()
 	if err != nil {
 		return err
+	}
+	if !*handshake {
+		options, err := autoReviewOptions(project, *core)
+		if err != nil {
+			return err
+		}
+		return executeReview(options)
 	}
 	if *configPath == "" {
 		*configPath, err = config.DefaultPath()
@@ -621,6 +626,66 @@ func parseReviewArgs(args []string) (reviewOptions, error) {
 		return reviewOptions{}, errors.New("usage: zconfig review <proposal> --source <file> [--schema <file>]")
 	}
 	return reviewOptions{proposal: proposalPath, source: *source, schema: *schema, corePath: *corePath, monochrome: *monochrome}, nil
+}
+
+func autoReviewOptions(root, corePath string) (reviewOptions, error) {
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return reviewOptions{}, err
+	}
+	var proposals []review.Proposal
+	proposalPaths := map[string]review.Proposal{}
+	var jsonPaths []string
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+			continue
+		}
+		path := filepath.Join(root, entry.Name())
+		bytes, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		if protocol.ValidateContract(protocol.ContractProposal, bytes, "") == nil {
+			var proposal review.Proposal
+			if json.Unmarshal(bytes, &proposal) == nil {
+				proposals = append(proposals, proposal)
+				proposalPaths[path] = proposal
+				continue
+			}
+		}
+		jsonPaths = append(jsonPaths, path)
+	}
+	if len(proposals) == 0 {
+		return reviewOptions{}, errors.New("no zconfig proposal found in root directory")
+	}
+	sort.Strings(jsonPaths)
+	var matches []reviewOptions
+	for proposalPath, proposal := range proposalPaths {
+		for _, source := range jsonPaths {
+			if strings.HasSuffix(source, ".schema.json") || filepath.Base(source) == "schema.json" {
+				continue
+			}
+			bytes, err := os.ReadFile(source)
+			if err == nil && digestBytes(bytes) == proposal.SourceDigest {
+				matches = append(matches, reviewOptions{proposal: proposalPath, source: source, schema: schemaFor(root, source), corePath: corePath})
+			}
+		}
+	}
+	if len(matches) != 1 {
+		return reviewOptions{}, fmt.Errorf("auto discovery needs exactly one proposal/source match in root directory; found %d", len(matches))
+	}
+	return matches[0], nil
+}
+
+func schemaFor(root, source string) string {
+	base := strings.TrimSuffix(filepath.Base(source), ".json")
+	candidates := []string{filepath.Join(root, base+".schema.json"), filepath.Join(root, "schema.json")}
+	for _, path := range candidates {
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+	return ""
 }
 
 func executeReview(options reviewOptions) error {
